@@ -1,0 +1,78 @@
+{
+  "_comment": "Machine-readable manifest for base composition #1. Generated 2026-05-15 from `drive/Описание лонгрида - порядок базовых слоев.csv` (rows where id_layer_base=1) and the QML files now co-located in this folder. This file is the runtime source of truth — `src/layerStyles.ts` and `src/baseCompositions.ts` import it. Placeholders are flagged with `placeholder: true`.",
+  "id_layer_base": 1,
+  "render_order": [
+    {
+      "kind": "raster",
+      "name": "relief_hillshade",
+      "source": "tiles/relief_hillshade/{z}/{x}/{y}.png",
+      "note": "Pre-baked pixel multiply of relief × hillshade. Replaces the two separate raster rows of the CSV (relief multiply + hillshade multiply). Deployed at https://pashteto.github.io/gavr-tiles/relief_hillshade/{z}/{x}/{y}.png and amphitheater.pashteto.com/tiles/relief_hillshade/{z}/{x}/{y}.png."
+    },
+    {
+      "kind": "vector",
+      "name": "sectors_level",
+      "geojson": "sectors_level.geojson",
+      "qml": "src/assets/styles/sectors_level.qml",
+      "style": {
+        "fill":    { "color": "rgb(255,158,23)", "opacity": 0.01 },
+        "outline": { "color": "rgb(182,113,16)", "width_px": 1.0 },
+        "line":    { "color": "rgb(255,158,23)", "width_px": 1.7 }
+      }
+    },
+    {
+      "kind": "vector",
+      "name": "isoline_5m",
+      "geojson": "isoline_5m.geojson",
+      "qml": "src/assets/styles/isoline_5m.qml",
+      "style": {
+        "line": { "color": "rgb(225,89,137)", "width_px": 1.0 }
+      },
+      "note": "Source GeoJSON is 181 MB — bundled copy is simplified to 25 m tolerance in EPSG:3857 (3.5 MB, 1843 features). Regenerate via base-layer-1-prep/."
+    },
+    {
+      "kind": "vector",
+      "name": "amphitheater_bound",
+      "geojson": "amphitheater_bound.geojson",
+      "qml": "src/assets/styles/amphitheater_bound.qml",
+      "style": {
+        "line": { "color": "rgb(67,69,69)", "width_px": 1.4 }
+      }
+    },
+    {
+      "kind": "vector",
+      "name": "stage",
+      "geojson": "stage.geojson",
+      "qml": "src/assets/styles/stage.qml",
+      "style": {
+        "fill":    { "color": "rgb(225,89,137)", "opacity": 0.05 },
+        "hatch":   { "color": "rgb(255,255,255)", "opacity": 0.6, "angle_deg": 45, "spacing_px": 8, "line_width_px": 1.5 },
+        "outline": { "color": "rgb(161,64,98)",  "width_px": 1.0 },
+        "line":    { "color": "rgb(225,89,137)", "width_px": 1.7 }
+      }
+    },
+    {
+      "kind": "vector",
+      "name": "water",
+      "geojson": "water.geojson",
+      "qml": "src/assets/styles/water.qml",
+      "style": {
+        "fill":    { "color": "rgb(196,60,57)", "opacity": 0.05 },
+        "outline": { "color": "rgb(140,43,41)", "width_px": 1.0 },
+        "line":    { "color": "rgb(196,60,57)", "width_px": 1.7 }
+      }
+    },
+    {
+      "kind": "raster",
+      "name": "positron_labels",
+      "source": "https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png",
+      "absolute_url": true,
+      "minzoom": 0,
+      "maxzoom": 19,
+      "opacity": 0.9,
+      "attribution": "© OpenStreetMap contributors © CARTO",
+      "note": "Subtle city/town labels overlay sourced from CartoCDN's `light_only_labels` style. Sits at the top of the base stack (above relief + vectors, below per-section overlays via the OVERLAY_ANCHOR_ID). Free tier; monitor traffic and switch to self-hosted (tilemaker over OSM) if usage grows past ~10k tiles/day. See plan/07-positron-labels.md."
+    }
+  ],
+  "px_per_mm_assumption": 2.83,
+  "calibration_note": "QML widths are in millimeters; MapLibre line-width is in screen pixels. Outline widths bumped from QML's 0.2 mm (≈0.57 px, invisible at typical zoom) to 1.0 px for legibility. Calibrate visually on the dev build at z=12 and adjust if lines read too thin or too heavy."
+}

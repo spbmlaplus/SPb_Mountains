@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+src/assets/layers/relief.tif
+src/assets/layers/isoline_5m.geojson
+
+# Local-dev fallback for self-hosted raster tiles
+public/tiles/
+
+# Visual-fidelity test working files (HTML reports land in ../.claude-reports/)
+visual-tests/output/
+test-results/
+playwright-report/

@@ -1,0 +1,14 @@
+{
+"type": "FeatureCollection",
+"name": "skiing",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "id": "15329373", "name": "Лыжнобиатлонная база СКА-5 (ru)", "url": "http://wikimapia.org/15329373/ru/%D0%9B%D1%8B%D0%B6%D0%BD%D0%BE%D0%B1%D0%B8%D0%B0%D1%82%D0%BB%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F-%D0%B1%D0%B0%D0%B7%D0%B0-%D0%A1%D0%9A%D0%90-5", "lat": 60.1550907, "lon": 30.570516 }, "geometry": { "type": "Point", "coordinates": [ 3402816.180433255154639, 8434408.888701926916838 ] } },
+{ "type": "Feature", "properties": { "fid": 5, "id": "40851354", "name": "Лыжная трасса «Кузьмолово». 3,5 км (ru)", "url": "http://wikimapia.org/40851354/ru/%D0%9B%D1%8B%D0%B6%D0%BD%D0%B0%D1%8F-%D1%82%D1%80%D0%B0%D1%81%D1%81%D0%B0-%C2%AB%D0%9A%D1%83%D0%B7%D1%8C%D0%BC%D0%BE%D0%BB%D0%BE%D0%B2%D0%BE%C2%BB-3-5-%D0%BA%D0%BC", "lat": 60.1249897, "lon": 30.5263924 }, "geometry": { "type": "Point", "coordinates": [ 3398147.754250219557434, 8427659.437929024919868 ] } },
+{ "type": "Feature", "properties": { "fid": 6, "id": "34415525", "name": "Бывшая лыжная база (ru)", "url": "http://wikimapia.org/34415525/ru/%D0%91%D1%8B%D0%B2%D1%88%D0%B0%D1%8F-%D0%BB%D1%8B%D0%B6%D0%BD%D0%B0%D1%8F-%D0%B1%D0%B0%D0%B7%D0%B0", "lat": 59.6724687, "lon": 30.7849895 }, "geometry": { "type": "Point", "coordinates": [ 3427033.497249261010438, 8327547.487650473602116 ] } },
+{ "type": "Feature", "properties": { "fid": 7, "id": "5072258", "name": "Pukhtolova Gora ski resort", "url": "http://wikimapia.org/5072258/Pukhtolova-Gora-ski-resort", "lat": 60.2318883, "lon": 29.6808742 }, "geometry": { "type": "Point", "coordinates": [ 3304141.983042414765805, 8451469.168210813775659 ] } },
+{ "type": "Feature", "properties": { "fid": 9, "id": "15912393", "name": "Лыжная трасса «Полярная звезда» (ru)", "url": "http://wikimapia.org/15912393/ru/%D0%9B%D1%8B%D0%B6%D0%BD%D0%B0%D1%8F-%D1%82%D1%80%D0%B0%D1%81%D1%81%D0%B0-%C2%AB%D0%9F%D0%BE%D0%BB%D1%8F%D1%80%D0%BD%D0%B0%D1%8F-%D0%B7%D0%B2%D0%B5%D0%B7%D0%B4%D0%B0%C2%BB", "lat": 60.0761491, "lon": 30.2837167 }, "geometry": { "type": "Point", "coordinates": [ 3371203.616235962603241, 8416701.840084418654442 ] } },
+{ "type": "Feature", "properties": { "fid": 10, "id": "37827750", "name": "База отдыха «Прибой» (ru)", "url": "http://wikimapia.org/37827750/ru/%D0%91%D0%B0%D0%B7%D0%B0-%D0%BE%D1%82%D0%B4%D1%8B%D1%85%D0%B0-%C2%AB%D0%9F%D1%80%D0%B8%D0%B1%D0%BE%D0%B9%C2%BB", "lat": 60.208397, "lon": 29.7183501 }, "geometry": { "type": "Point", "coordinates": [ 3311414.796530962456018, 8446891.033926354721189 ] } },
+{ "type": "Feature", "properties": { "fid": 11, "id": "34153290", "name": "Лыжня (ru)", "url": "http://wikimapia.org/34153290/ru/%D0%9B%D1%8B%D0%B6%D0%BD%D1%8F", "lat": 59.6946121, "lon": 30.7739549 }, "geometry": { "type": "Point", "coordinates": [ 3425709.777958998922259, 8332059.536703640595078 ] } }
+]
+}
