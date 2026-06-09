@@ -4,6 +4,20 @@ This folder is the **runtime source of truth** for base composition #1's styling
 
 The five `.qml` files are QGIS originals, kept alongside the JSON so any future "did the design team mean this color?" question can be answered without leaving this folder. **The QMLs are not loaded at runtime** — they are reference documents for hand-porting and for diffing against a future canonical version.
 
+## ⚠️ 2026-06-09 re-port correction (read this)
+
+The original port pulled colors from "the first `SimpleFill` symbol" in each QML. That was a **bug**: a QGIS `.qml` opens with an `<elevation>` block whose `profileFillSymbol` / `profileLineSymbol` colors are for 3D elevation profiles, not the map. `sectors_level`, `stage`, and `water` all picked up those profile colors (orange, magenta/pink, red) instead of the real map renderer — which is why the design team said the map looked nothing like QGIS.
+
+Fixed 2026-06-09 by re-porting from the **`<renderer-v2>`** block only:
+
+| Layer | Real `<renderer-v2>` | Was rendering (wrong) |
+|---|---|---|
+| `sectors_level` | transparent fill + **black dashed** 0.1 mm outline → no fill, black dashed line | orange fill + orange-brown solid outline + orange line |
+| `stage` | **teal 45° LinePatternFill** rgb(50,126,105) over white wash, symbol α 0.579, outline #232323 → white wash + teal hatch + dark outline | magenta solid fill + white hatch + pink outline/line |
+| `water` | light-blue solid fill rgb(194,210,242), invisible outline → blue fill only | red fill + red outline + red line |
+
+`isoline_5m` and `amphitheater_bound` were already correct (color right, width calibrated) and are unchanged. The per-field table below predates this fix — trust the per-entry `note` fields in `base-composition-1.json` for the current provenance.
+
 ## Per-field provenance
 
 For each value in `base-composition-1.json`, here's where it came from:

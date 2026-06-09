@@ -2,6 +2,50 @@
 
 Snapshot for whoever picks this up next (human or future agent session). Read top-to-bottom; entries are date-stamped — the most recent (top) supersedes earlier conflicting state.
 
+## 2026-06-09 update — Viewpoints photo layer + oracle-1 redeploy + GitHub Pages status
+
+Committed + pushed as `b26dc9e "Viewpoints"` (origin/main in sync).
+
+### Repo layout note (supersedes CLAUDE.md)
+
+The app no longer lives in a `Map-View-Client/` subdirectory — **the Vite app is the repo root** (`src/`, `package.json`, `vite.config.ts`, `node_modules` are all at the top level of `/Users/dodonovpavel/gateway_fm/REAL_WORLD_ASSETS/3-spb/SPb_Mountains`). CLAUDE.md and the older `agentic_dev/deploy-oracle-1.md` still reference the legacy `…/gavr_mounty/gavr_mounty/Map-View-Client` path — ignore that prefix; run all commands from the repo root. The migration/handoff docs now live under `agentic_dev/`.
+
+### New feature — Viewpoints (global toggleable photo layer)
+
+A new always-available map layer that renders each viewpoint photo as a small (~32–40 px) rounded, white-bordered photo "pin" at its location instead of a dot. Independent on/off toggle ("Точки обзора") in the layers panel, shown in every chapter, **on by default**. Clicking an icon opens the full-size photo in a lightbox (reuses `.mountain-photo-modal` styles).
+
+- **Source data**: `src/assets/layers/Viewpoints.geojson` (64 features, EPSG:3857 — transformed by the existing `loadGeoJson`). Each feature has `fid` (e.g. `1001`), `ID` (uuid), `Name` (source filename, e.g. `1001.JPG`), `Date`, `Time`, `Altitude`, `Azimuth`. `fid` == `Name` basename for all 64.
+- **Prep script**: `scripts/prep-viewpoint-images.sh` (re-runnable, needs ImageMagick `magick` + python3). For each feature it bakes two `fid`-named outputs from the source photo archive (`…/3-spb/gavr_mounty/Фото`):
+  - `src/assets/viewpoint_images/<fid>.webp` — 84 px square map icon, rounded corners + white border + soft shadow baked in (authored at 2x; registered with `addImage(..., {pixelRatio:2})`).
+  - `src/assets/viewpoint_photos/<fid>.webp` — full-size lightbox photo (longest side 1280, plain).
+  - Handles the one casing mismatch (`Viewpoints.geojson` says `613.jpg`, archive has `613.JPG`) via case-insensitive `find`.
+- **Rendering** (`src/MainMap.tsx`): a native MapLibre `symbol` layer `viewpoints-symbol` from source `viewpoints-source`, `icon-image: ['to-string', ['get','fid']]`, `icon-allow-overlap: true`, zoom-ramped `icon-size` (0.55@z9 → 1.0@z13). Icons registered via `map.loadImage`/`addImage` keyed by `fid`. Built in a dedicated `mapReady` effect; a second effect mirrors the toggle onto layer `visibility`; a third binds `click`/`mouseenter`/`mouseleave` (click → `setViewpointModal({fid, caption})`, caption = `Date · Altitude м`). Esc/backdrop/× close the modal.
+- **Asset module**: `src/viewpointPhotos.ts` — `viewpointIcons` map (fid→icon URL) + `viewpointPhotoUrl(fid)` (full photo).
+- **Modal**: `src/ViewpointPhotoModal.tsx`.
+- **Toggle UI**: `src/OverlayTogglePanel.tsx` gained optional `viewpointsOn` / `onToggleViewpoints` props and renders a persistent "Точки обзора" row; panel now renders whenever that toggle exists (not only when section layers exist). `MainMap.tsx` holds `viewpointsOn` state (default true) and always renders the panel.
+
+**Watch-outs**: 64 icons overlap heavily at z9 (expected — they separate on zoom); tweak `icon-size`/`icon-allow-overlap` if undesired. `src/assets/viewpoint_photos/` is ~9.8 MB (lazy-fetched on click, not in the JS bundle).
+
+### Reverted — mountains-with-photos pins (do NOT re-attempt as-was)
+
+An earlier same-session attempt replaced the mountain `▲` triangles with photo pins (HTML markers, driven by the `"photo id"` field in `mountains.geojson`) and added 64 photos to `src/assets/mountain_images/`. **The user reverted all of it** ("didn't understand the correctness"). `mountain_images/` is back to its original 5 webp pairs; only 3 mountains have a `photo id`. The Viewpoints layer above is the user's preferred shape for showing photos on the map. The obsolete plan is at `~/.claude/plans/noble-bouncing-hummingbird.md` (marked superseded).
+
+### oracle-1 redeploy — done
+
+`https://amphitheater.pashteto.com/` was rebuilt + rsynced with the Viewpoints feature, per `agentic_dev/deploy-oracle-1.md` §7:
+```
+VITE_TILE_BASE_URL=/tiles VITE_BASE_PATH=/ npm run build
+rsync -avz --delete --exclude='/tiles/' dist/ oracle-1:/var/www/amphitheater.pashteto.com/html/
+```
+Verified live: HTTPS 200, tiles preserved, viewpoint icons render + clickable lightbox works. A pre-deploy backup sits on the server at `/var/www/amphitheater.pashteto.com/html.bak` (instant rollback via the §8 restore). The only console error is the **Google Sheets API 403** (the public key is HTTP-referrer-restricted; `amphitheater.pashteto.com` isn't allowlisted → content falls back to `fallbackContentItems`). Documented pitfall #6; needs the referrer added in Google Cloud Console — out of our access.
+
+### GitHub Pages deploy — BLOCKED (two separate problems)
+
+The repo is `spbmlaplus/SPb_Mountains`. `.github/workflows/deploy.yml` builds `dist/` and deploys to Pages on push to `main`. It currently **fails at `actions/configure-pages@v5`**:
+
+1. **Pages is not enabled** on the repo, and the logged-in `gh` account (`Pashteto`) has `admin: false` there. We tried `with: enablement: true` — the workflow token got `Resource not accessible by integration` (token can't create the Pages site either). **Resolution: a `spbmlaplus` repo admin/owner must enable Pages once** (Settings → Pages → Build and deployment → Source: "GitHub Actions", or `gh api -X POST repos/spbmlaplus/SPb_Mountains/pages -f build_type=workflow`), and confirm Settings → Actions → Workflow permissions = Read and write. The `enablement: true` line was reverted (deploy.yml at HEAD is the plain `configure-pages@v5`).
+2. **Base-path mismatch (will 404 even once Pages is on)**: `vite.config.ts` base defaults to `/Map-View-Client/`, but this repo's Pages site serves at `https://spbmlaplus.github.io/SPb_Mountains/`. The build needs `base: "/SPb_Mountains/"` — set `VITE_BASE_PATH=/SPb_Mountains/` in the deploy.yml build step (it already reads `VITE_BASE_PATH`), or change the default. Until then, assets resolve to `/Map-View-Client/...` and 404.
+
 ## 2026-05-20 update — Mobile horizontal carousel + desktop UI polish + oracle-1 redeploy
 
 The mobile layout from `plan/change-2/` (sticky map 45vh on top, longread flowing below as a vertical document) was **replaced with a horizontal scroll-snap carousel**. The map is now permanently visible at the top of the mobile viewport, and longread sections page horizontally. Several long-standing desktop UI bugs were fixed in the same pass. Built + rsynced to oracle-1 at the end of the session — `https://amphitheater.pashteto.com/` serves the new bundle.

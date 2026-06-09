@@ -26,6 +26,11 @@ export type LayerStyle = {
     size: number | maplibregl.ExpressionSpecification
   }
   fill?: { color: string; opacity: number }
+  // Categorized fill: one color per value of `property`, emitted as a MapLibre
+  // `match` expression. Used for QGIS categorizedSymbol layers (e.g. land-use
+  // and landscape overlays). Hatch-per-category from QGIS is approximated as a
+  // solid per-category fill.
+  fillCategories?: { property: string; opacity: number; cases: Record<string, string>; default: string }
   hatch?: { color: string; opacity: number; angleDeg: number; spacingPx: number; lineWidthPx: number }
   outline?: { color: string; width: number; opacity?: number; dasharray?: number[] }
   line?: { color: string; width: number; dasharray?: number[]; opacity?: number }
@@ -61,6 +66,7 @@ type ManifestStyle = {
   halo_width_px?: number
   size_px?: ManifestSizeRamp
   fill?: ManifestPaint
+  fill_categories?: { property: string; opacity?: number; cases: Record<string, string>; default?: string }
   hatch?: ManifestHatch
   outline?: ManifestPaint
   line?: ManifestPaint
@@ -96,6 +102,12 @@ const styleFromManifest = (style: ManifestStyle): LayerStyle => {
     fill: style.fill && {
       color: style.fill.color,
       opacity: style.fill.opacity ?? 1,
+    },
+    fillCategories: style.fill_categories && {
+      property: style.fill_categories.property,
+      opacity: style.fill_categories.opacity ?? 1,
+      cases: style.fill_categories.cases,
+      default: style.fill_categories.default ?? 'rgba(0,0,0,0)',
     },
     hatch: style.hatch && {
       color: style.hatch.color,

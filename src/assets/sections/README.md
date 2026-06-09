@@ -2,6 +2,14 @@
 
 This folder is the **runtime source of truth** for the 13 per-section overlay stacks (id_map 1–13). `src/sectionOverlays.ts` imports `section-overlays.json` directly; `src/layerStyles.ts` merges its `styles` block into `VECTOR_STYLES`. Edit the JSON when stack composition or paint values change; the TypeScript modules rebuild themselves at next reload.
 
+## ⚠️ 2026-06-09 re-port correction (read this)
+
+The original port read colors from "the first `SimpleFill` symbol" in each QML. That was a **bug**: QGIS `.qml` files begin with an `<elevation>` block (elevation-profile symbols) whose colors are unrelated to the map. For several layers the first `SimpleFill` lives in that block, so the app rendered the wrong colors — which is why the design team said the map looked nothing like QGIS.
+
+All overlay styles were re-ported on 2026-06-09 from the **`<renderer-v2>`** block (the actual map renderer) only. The canonical QMLs now live **in-repo** at `src/assets/styles/sections/*.qml` (copied from `gavr_mounty/drive/Стили/` + the newer `Стили 2/`), so the `qml` pointers in the JSON now reference those paths. Notable fixes: `vomitoria` (was purple fill → blue line), `sector`/`sectors_level` (red/orange fill → no-fill + black outline), `stage_*` (purple fill → no-fill + dark dash/solid outline), `search_bound*` (red → black lines), `mask` (was 0.12 dark wash → QGIS black @ 0.70), and the categorized layers below.
+
+**Categorized layers** (`resettlement_after_stage`, `landscape_12`, `landscape_7`) now use a `fill_categories` block — `{ property, opacity, cases, default }` — which `layerStyles.ts` maps to a MapLibre `match` expression on the named feature property (`type` or `Ландшафт`). Per-category QGIS hatch (dense3 / diagonal_x / cross / PointPatternFill) is approximated as a solid per-category fill. `landscape_450` and `landscape_2,5` stay flat because their categories share one base color.
+
 ## Per-field provenance
 
 For each value in `section-overlays.json`, here's where it came from:
@@ -13,7 +21,7 @@ For each value in `section-overlays.json`, here's where it came from:
 | `sets[K].layers[].mandatory` | Derived | True when `id_layer_click = 1` per the CSV row. All others (`id_layer_click ≥ 2`) are optional and default-ON in the UI. |
 | `sets[K].layers[].label` | **Authored** | Russian-language UI label for the toggle panel. Derived from `лонгрид.csv` subtitles + Russian convention; tune freely. Falls back to `name` when missing. |
 | `sets[K].default_base` | ✅ Quoted | `id_layer_base` column from the CSV. For id_map 1 (which appears in both chapters with two different bases), `default_base = 1` is the chapter-1 value; the chapter-2 occurrence overrides via the Sheet row's `base_id` column. See "Disambiguating id_map = 1" below. |
-| `styles.<name>.fill.color` etc. | ✅ Quoted (when QML exists) | `drive/Стили/<name>.qml`'s `<Option name="color">` of the first `SimpleFill` symbol; same convention as base composition #1's README. RGB extracted from the leading `R,G,B,255,...` triple. |
+| `styles.<name>.fill.color` / `fill_categories` etc. | ✅ Quoted (when QML exists) | The `<Option name="color">` of the `SimpleFill`/`SimpleLine`/`LinePatternFill` inside the QML's **`<renderer-v2>`** block (NOT the `<elevation>` profile block — see the correction note above). RGB extracted from the leading `R,G,B,A,...` triple. In-repo source: `src/assets/styles/sections/<name>.qml`. |
 | `styles.<name>.line.width_px`, `outline.width_px` | Converted | QML widths are in mm; 72 dpi → 2.83 px/mm. QML's 0.6 mm becomes ~1.7 px (line) and 0.2 mm → 1.0 px (outline, bumped from sub-pixel for legibility). |
 | `styles.<name>.fill.opacity` | **My calibration** | QML's color alpha is 255 (fully opaque). Overlay tints are dialed to 0.3–0.4 so the relief base reads through; placeholders use 0.35–0.4. Tune per style — this is the primary visual-calibration knob. |
 | `styles.<name>.placeholder = true` | Marker | No QML existed for the style in `drive/Стили/`. Placeholder colors chosen to be visually distinct from each other and from base composition layers. **Replace when design ships the canonical QML.** |

@@ -121,66 +121,68 @@
       }
     },
     "mask": {
-      "qml": "drive/Стили/mask.qml",
-      "note": "QML's bright mustard fill (rgb 190,207,80) is for the highlight band. We instead preserve today's behavior: a dark translucent fill (rgb 9,19,26 @ 0.12) plus the QML's dark mustard outline. Bright fill kept available via the `mask_highlight` placeholder if a future section needs it.",
-      "fill": { "color": "rgb(9,19,26)", "opacity": 0.12 },
-      "outline": { "color": "rgb(32,55,69)", "width_px": 1.0, "opacity": 0.55 }
+      "qml": "src/assets/styles/sections/mask.qml",
+      "note": "Faithful to mask.qml <renderer-v2>: SimpleFill black rgb(0,0,0) @ alpha 0.70, outline_style 'no'. (The previous note claiming a mustard fill rgb(190,207,80) was a mix-up — that color belongs to stage_1.qml, not mask.) 0.70 is an aggressive dim; lower opacity if the masked area reads too dark against the relief.",
+      "fill": { "color": "rgb(0,0,0)", "opacity": 0.7 }
     },
     "elements": {
-      "qml": "drive/Стили/elements.qml",
-      "note": "QML's SimpleFill renders with `style: no` (no fill) + a pale-teal outline at 0.46 mm (~1.3 px). Outline-only polygon style — fill omitted intentionally. Visually distinct from the prior bright-orange placeholder.",
+      "qml": "src/assets/styles/sections/elements.qml",
+      "note": "Verified faithful to elements.qml <renderer-v2>: SimpleFill with style 'no' (no fill) + a pale-teal outline rgb(185,219,210) at 0.46 mm (~1.3 px). Outline-only.",
       "outline": { "color": "rgb(185,219,210)", "width_px": 1.3 },
       "line": { "color": "rgb(185,219,210)", "width_px": 1.3 }
     },
     "vomitoria": {
-      "qml": "drive/Стили/vomitoria.qml",
-      "fill": { "color": "rgb(141,90,153)", "opacity": 0.4 },
-      "outline": { "color": "rgb(101,64,109)", "width_px": 1.0 },
-      "line": { "color": "rgb(141,90,153)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/vomitoria.qml",
+      "note": "Faithful to vomitoria.qml <renderer-v2>: a single SimpleLine in vivid blue rgb(29,70,205), 0.66 mm (~1.9 px), solid — no fill. The previous purple fill rgb(141,90,153) was invented.",
+      "outline": { "color": "rgb(29,70,205)", "width_px": 1.9 },
+      "line": { "color": "rgb(29,70,205)", "width_px": 1.9 }
     },
     "sector_1": {
-      "qml": "drive/Стили/sector.qml",
-      "note": "CSV style name is `sector_1`; ported from `sector.qml` (the `_1` suffix in the CSV is a styling variant marker that the QML filename omits, same pattern as isoline_5m → isoline_5m_1.qml in base #1).",
-      "fill": { "color": "rgb(183,72,75)", "opacity": 0.4 },
-      "outline": { "color": "rgb(131,51,54)", "width_px": 1.0 },
-      "line": { "color": "rgb(183,72,75)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/sector.qml",
+      "note": "Faithful to sector.qml <renderer-v2>: SimpleFill with transparent fill (255,255,255 @ alpha 0) + a black solid outline at 0.1 mm — no fill. Like sectors_level but solid (not dashed). The previous red fill/outline/line was invented.",
+      "outline": { "color": "rgb(0,0,0)", "width_px": 1.0 },
+      "line": { "color": "rgb(0,0,0)", "width_px": 1.0 }
     },
     "resettlement": {
-      "qml": "drive/Стили/resettlement.qmd.qml",
-      "fill": { "color": "rgb(213,180,60)", "opacity": 0.4 },
-      "outline": { "color": "rgb(152,129,43)", "width_px": 1.0 },
-      "line": { "color": "rgb(213,180,60)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/resettlement.qmd.qml",
+      "note": "Faithful to resettlement.qmd.qml <renderer-v2>: SimpleFill pink rgb(243,78,157), fill style 'dense3' (sparse hatch), outline_style 'no'. MapLibre renders the dense3 density as a solid fill at opacity 0.4. The previous yellow rgb(213,180,60) + outline was invented.",
+      "fill": { "color": "rgb(243,78,157)", "opacity": 0.4 }
     },
     "resettlement_after_stage": {
-      "qml": "drive/Стили/resettlement_after_stage.qml",
-      "fill": { "color": "rgb(114,155,111)", "opacity": 0.4 },
-      "outline": { "color": "rgb(81,111,79)", "width_px": 1.0 },
-      "line": { "color": "rgb(114,155,111)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/resettlement_after_stage.qml",
+      "note": "Faithful to resettlement_after_stage.qml <renderer-v2>: categorizedSymbol on `type` (5 land-use classes IND/MF/MU/PKG/SF), all dense3 fill, outline_style 'no'. Rendered as per-category solid fills via fill_categories (dense3 → solid). The previous flat green rgb(114,155,111) was invented.",
+      "fill_categories": {
+        "property": "type",
+        "opacity": 0.4,
+        "cases": {
+          "IND": "rgb(29,70,205)",
+          "MF": "rgb(224,23,23)",
+          "MU": "rgb(243,78,157)",
+          "PKG": "rgb(118,134,178)",
+          "SF": "rgb(255,133,60)"
+        },
+        "default": "rgb(118,134,178)"
+      }
     },
     "stage_isolated_urban_areas": {
-      "qml": "drive/Стили/stage_isolated_urban_areas.qml",
-      "fill": { "color": "rgb(141,90,153)", "opacity": 0.4 },
-      "outline": { "color": "rgb(101,64,109)", "width_px": 1.0, "dasharray": [4, 2] },
-      "line": { "color": "rgb(141,90,153)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/stage_isolated_urban_areas.qml",
+      "note": "Faithful to stage_isolated_urban_areas.qml <renderer-v2>: SimpleFill style 'no' (no fill) + a dark dashed outline rgb(35,35,35) at 0.3 mm. The previous purple fill was invented.",
+      "outline": { "color": "rgb(35,35,35)", "width_px": 1.0, "dasharray": [4, 2] }
     },
     "stage_barier": {
-      "qml": "drive/Стили/stage_barier.qml",
-      "fill": { "color": "rgb(141,90,153)", "opacity": 0.4 },
-      "outline": { "color": "rgb(101,64,109)", "width_px": 1.0, "dasharray": [4, 2] },
-      "line": { "color": "rgb(141,90,153)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/stage_barier.qml",
+      "note": "Faithful to stage_barier.qml <renderer-v2>: SimpleFill style 'no' (no fill) + a dark dashed outline rgb(35,35,35) at 0.3 mm. Same renderer as stage_isolated_urban_areas. The previous purple fill was invented.",
+      "outline": { "color": "rgb(35,35,35)", "width_px": 1.0, "dasharray": [4, 2] }
     },
     "stage_1": {
-      "qml": "drive/Стили/stage_1.qml",
-      "note": "Distinct from base composition #1's `stage` style — `stage_1` is the overlay variant referenced by id_maps 8 and 9.",
-      "fill": { "color": "rgb(141,90,153)", "opacity": 0.4 },
-      "outline": { "color": "rgb(101,64,109)", "width_px": 1.3 },
-      "line": { "color": "rgb(141,90,153)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/stage_1.qml",
+      "note": "Faithful to stage_1.qml <renderer-v2>: SimpleFill with fill style 'no' (the mustard rgb(190,207,80) color is set but not rendered, since style='no') + a solid dark outline rgb(35,35,35) at 0.46 mm (~1.3 px). Outline-only. Distinct from base composition #1's `stage`. The previous purple fill was invented.",
+      "outline": { "color": "rgb(35,35,35)", "width_px": 1.3 }
     },
     "historical_resettlement": {
-      "qml": "drive/Стили/historical_resettlement.qml",
-      "note": "QML uses a `dense3` hatched fill in vivid orange `rgb(218,89,12)` with `outline_style: no`. MapLibre has no hatch pattern, so the hatched fill is approximated as a solid fill at opacity 0.4 (visual density of dense3 ≈ ~50–60%). No outline.",
-      "fill": { "color": "rgb(218,89,12)", "opacity": 0.4 },
-      "line": { "color": "rgb(218,89,12)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/historical_resettlement.qml",
+      "note": "Verified faithful to historical_resettlement.qml <renderer-v2>: SimpleFill vivid orange rgb(218,89,12), fill style 'dense3', outline_style 'no'. dense3 rendered as a solid fill at opacity 0.4. No outline/line (the previous line was invented).",
+      "fill": { "color": "rgb(218,89,12)", "opacity": 0.4 }
     },
     "slope": {
       "placeholder": true,
@@ -190,45 +192,63 @@
       "line": { "color": "rgb(120,140,110)", "width_px": 1.7 }
     },
     "search_bound_one_step": {
-      "qml": "drive/Стили/search_bound_one_step.qml",
-      "fill": { "color": "rgb(183,72,75)", "opacity": 0.3 },
-      "outline": { "color": "rgb(131,51,54)", "width_px": 1.0 },
-      "line": { "color": "rgb(183,72,75)", "width_px": 1.5 }
+      "qml": "src/assets/styles/sections/search_bound_one_step.qml",
+      "note": "Faithful to search_bound_one_step.qml <renderer-v2>: a single SimpleLine, black rgb(0,0,0), 0.3 mm (~1.0 px), dashed (use_custom_dash=1, customdash 2;1 → [2,1]). No fill. The previous red fill/outline was invented.",
+      "outline": { "color": "rgb(0,0,0)", "width_px": 1.0, "dasharray": [2, 1] },
+      "line": { "color": "rgb(0,0,0)", "width_px": 1.0, "dasharray": [2, 1] }
     },
     "search_bound": {
-      "qml": "drive/Стили/search_bound.qml",
-      "fill": { "color": "rgb(183,72,75)", "opacity": 0.35 },
-      "outline": { "color": "rgb(131,51,54)", "width_px": 1.3 },
-      "line": { "color": "rgb(183,72,75)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/search_bound.qml",
+      "note": "Faithful to search_bound.qml <renderer-v2>: a single SimpleLine, black rgb(0,0,0), 0.5 mm (~1.4 px), solid. No fill. The previous red fill/outline was invented.",
+      "outline": { "color": "rgb(0,0,0)", "width_px": 1.4 },
+      "line": { "color": "rgb(0,0,0)", "width_px": 1.4 }
     },
     "amphitheater_bound_1": {
-      "qml": "drive/Стили/amphitheater_bound_1.qml",
-      "note": "Canonical QML: solid dark-charcoal `SimpleLine` at 0.9 mm (~2.5 px). Thicker variant of the `amphitheater_bound` style used by base composition #1 (0.5 mm). Not dashed.",
+      "qml": "src/assets/styles/sections/amphitheater_bound_1.qml",
+      "note": "Verified faithful to amphitheater_bound_1.qml <renderer-v2>: solid dark-charcoal SimpleLine rgb(67,69,69) at 0.9 mm (~2.5 px). Thicker variant of base composition #1's `amphitheater_bound` (0.5 mm). Not dashed.",
       "line": { "color": "rgb(67,69,69)", "width_px": 2.5 }
     },
     "landscape_450": {
-      "qml": "drive/Стили/landscape_450.qml",
-      "note": "Categorized renderer with two categories (Ижорское плато / Путиловское плато) sharing a peach base `rgb(244,154,90)`. The QML stacks a solid-fill layer with a `dense5`/`dense6` hatch layer on top; MapLibre has no hatch, so this is simplified to a single solid fill at opacity 0.4. Outline omitted (QML uses `dot` outline at 0.26 mm which is sub-pixel anyway).",
-      "fill": { "color": "rgb(244,154,90)", "opacity": 0.4 },
-      "line": { "color": "rgb(244,154,90)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/landscape_450.qml",
+      "note": "Verified: landscape_450.qml <renderer-v2> is categorizedSymbol on `Ландшафт` (Ижорское плато / Путиловское плато) but BOTH categories share the same peach base rgb(244,154,90) with dense5/dense6 hatch — so a single flat fill is faithful (no per-category difference). Hatch approximated as solid @ 0.4. No outline (QML uses sub-pixel dot).",
+      "fill": { "color": "rgb(244,154,90)", "opacity": 0.4 }
     },
     "landscape_2,5": {
-      "qml": "drive/Стили/landscape_2,5.qml",
-      "note": "Categorized renderer with two categories (Дудергофские высоты / Моренный пояс) using olive-yellow stacks `rgb(202,207,90)` + `rgb(191,195,92)` with `dense6` hatch overlays. MapLibre has no hatch, so this is simplified to a single solid fill at opacity 0.4. Outline omitted (QML's outline is transparent or absent across categories).",
-      "fill": { "color": "rgb(202,207,90)", "opacity": 0.4 },
-      "line": { "color": "rgb(202,207,90)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/landscape_2,5.qml",
+      "note": "Verified: landscape_2,5.qml <renderer-v2> is categorizedSymbol on `Ландшафт` (Дудергофские высоты rgb(202,207,90) / Моренный пояс rgb(191,195,92)) — near-identical olives with dense6 hatch. Kept as a single flat olive fill (difference is imperceptible). Hatch approximated as solid @ 0.4. No outline.",
+      "fill": { "color": "rgb(202,207,90)", "opacity": 0.4 }
     },
     "landscape_12": {
-      "qml": "drive/Стили/landscape_12.qml",
-      "fill": { "color": "rgb(231,113,72)", "opacity": 0.4 },
-      "outline": { "color": "rgb(165,81,51)", "width_px": 1.0 },
-      "line": { "color": "rgb(231,113,72)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/landscape_12.qml",
+      "note": "Faithful to landscape_12.qml <renderer-v2>: categorizedSymbol on `Ландшафт` (5 categories with diagonal_x/cross/dense7/solid hatch over a pale base). Rendered as per-category solid fills using the saturated hatch color as representative. The previous flat rgb(231,113,72) + outline was invented.",
+      "fill_categories": {
+        "property": "Ландшафт",
+        "opacity": 0.4,
+        "cases": {
+          "Колтушская возвышенность": "rgb(244,154,90)",
+          "Лемболовская возвышенность": "rgb(255,133,60)",
+          "Озерковские косы": "rgb(224,23,23)",
+          "Румболовская возвышенность": "rgb(244,154,90)",
+          "Юкковская гряда": "rgb(219,135,122)"
+        },
+        "default": "rgb(244,154,90)"
+      }
     },
     "landscape_7": {
-      "qml": "drive/Стили/landscape_7.qml",
-      "fill": { "color": "rgb(141,90,153)", "opacity": 0.4 },
-      "outline": { "color": "rgb(101,64,109)", "width_px": 1.0 },
-      "line": { "color": "rgb(141,90,153)", "width_px": 1.7 }
+      "qml": "src/assets/styles/sections/landscape_7.qml",
+      "note": "Faithful to landscape_7.qml <renderer-v2>: categorizedSymbol on `Ландшафт` (5 categories; mix of PointPatternFill / hatch / solid). Rendered as per-category solid fills. The previous flat purple rgb(141,90,153) appears nowhere in the QML palette.",
+      "fill_categories": {
+        "property": "Ландшафт",
+        "opacity": 0.4,
+        "cases": {
+          "Литориновая лагуна": "rgb(161,193,160)",
+          "Литориновая терраса": "rgb(244,154,90)",
+          "Литориновые дюны": "rgb(244,154,90)",
+          "Приневская глинистая терраса": "rgb(240,242,196)",
+          "Приневская песчаная терраса": "rgb(255,218,143)"
+        },
+        "default": "rgb(244,154,90)"
+      }
     }
   },
   "px_per_mm_assumption": 2.83,

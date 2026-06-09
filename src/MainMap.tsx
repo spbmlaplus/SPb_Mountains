@@ -636,13 +636,27 @@ const computeBBox = (
   ]
 }
 
-const fillPaintFromStyle = (style: LayerStyle) =>
-  style.fill
+const fillPaintFromStyle = (style: LayerStyle) => {
+  if (style.fillCategories) {
+    const fc = style.fillCategories
+    const matchExpr = [
+      'match',
+      ['get', fc.property],
+      ...Object.entries(fc.cases).flatMap(([value, color]) => [value, color]),
+      fc.default,
+    ] as unknown as maplibregl.ExpressionSpecification
+    return {
+      'fill-color': matchExpr,
+      'fill-opacity': fc.opacity,
+    }
+  }
+  return style.fill
     ? {
         'fill-color': style.fill.color,
         'fill-opacity': style.fill.opacity,
       }
     : null
+}
 
 const outlinePaintFromStyle = (style: LayerStyle) =>
   style.outline
