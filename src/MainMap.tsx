@@ -17,6 +17,8 @@ import MountainPopup, { type MountainInfo } from './MountainPopup'
 import MountainPhotoModal from './MountainPhotoModal'
 import MountainPhotoFullscreen from './MountainPhotoFullscreen'
 import MobileLongreadControls from './MobileLongreadControls'
+import { viewpointIcons } from './viewpointPhotos'
+import ViewpointPhotoModal, { type ViewpointInfo } from './ViewpointPhotoModal'
 
 const sheetId = "1eRYnMzPMGck6lGlwGUCkT3tvwWLIQKRLvJ8dgu3oGnk";
 const sheetsApiKey = "AIzaSyDhhReA6Fe3i-p8TzL1Xr4DESg_D2YrWhE";
@@ -575,6 +577,12 @@ const lineIdForFile = (fileName: string) => `content-line-${fileName}`
 const circleIdForFile = (fileName: string) => `content-circle-${fileName}`
 const symbolIdForFile = (fileName: string) => `content-symbol-${fileName}`
 
+// Viewpoints: a standalone, globally-toggleable layer that renders each
+// viewpoint photo as a small rounded icon at its location.
+const VIEWPOINTS_FILE = 'Viewpoints.geojson'
+const VIEWPOINTS_SOURCE_ID = 'viewpoints-source'
+const VIEWPOINTS_LAYER_ID = 'viewpoints-symbol'
+
 const baseSourceId = (fileName: string) => `base-source-${fileName}`
 const baseFillId = (fileName: string) => `base-fill-${fileName}`
 const baseHatchId = (fileName: string) => `base-hatch-${fileName}`
@@ -1058,6 +1066,10 @@ function MainMap() {
   const itemRefs = useRef(new Map<string, HTMLDivElement>())
   const activeIdRef = useRef('')
   const [mapReady, setMapReady] = useState(false)
+  const [viewpointsOn, setViewpointsOn] = useState(true)
+  const viewpointsOnRef = useRef(viewpointsOn)
+  viewpointsOnRef.current = viewpointsOn
+  const [viewpointModal, setViewpointModal] = useState<ViewpointInfo | null>(null)
   const initialItems = useMemo(() => mergeFrame44Supplement(fallbackContentItems), [])
   const [contentItems, setContentItems] = useState(initialItems)
   const [activeItemId, setActiveItemId] = useState(initialItems[0]?.id ?? '')
@@ -1186,13 +1198,14 @@ function MainMap() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
-      if (mountainFullscreen) setMountainFullscreen(false)
+      if (viewpointModal) setViewpointModal(null)
+      else if (mountainFullscreen) setMountainFullscreen(false)
       else if (mountainModalPhotoId) setMountainModalPhotoId(null)
       else if (mountainPopup) setMountainPopup(null)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [mountainFullscreen, mountainModalPhotoId, mountainPopup])
+  }, [mountainFullscreen, mountainModalPhotoId, mountainPopup, viewpointModal])
 
   useEffect(() => {
     const map = mapRef.current
@@ -1389,6 +1402,110 @@ function MainMap() {
       setMapReady(false)
     }
   }, [])
+
+  // Build the Viewpoints layer once the map is ready: register one icon image
+  // per feature (keyed by fid), then add the source + icon-image symbol layer.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    let cancelled = false
+
+    const build = async () => {
+      const data = (await loadGeoJson(VIEWPOINTS_FILE)) as FeatureCollection
+      if (cancelled) return
+
+      await Promise.all(
+        data.features.map(async (f) => {
+          const fid = (f.properties as { fid?: number | string } | null)?.fid
+          if (fid === undefined || fid === null) return
+          const id = String(fid)
+          if (map.hasImage(id)) return
+          const url = viewpointIcons[id]
+          if (!url) return
+          try {
+            const img = await map.loadImage(url)
+            if (cancelled || map.hasImage(id)) return
+            map.addImage(id, img.data, { pixelRatio: 2 })
+          } catch {
+            /* missing icon — that feature just won't render */
+          }
+        }),
+      )
+      if (cancelled) return
+
+      if (!map.getSource(VIEWPOINTS_SOURCE_ID)) {
+        map.addSource(VIEWPOINTS_SOURCE_ID, {
+          type: 'geojson',
+          data,
+        } satisfies GeoJSONSourceSpecification)
+      }
+      if (!map.getLayer(VIEWPOINTS_LAYER_ID)) {
+        map.addLayer({
+          id: VIEWPOINTS_LAYER_ID,
+          type: 'symbol',
+          source: VIEWPOINTS_SOURCE_ID,
+          layout: {
+            'icon-image': ['to-string', ['get', 'fid']],
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.55, 13, 1],
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+            visibility: viewpointsOnRef.current ? 'visible' : 'none',
+          },
+        })
+      }
+    }
+
+    build().catch((err) => console.warn('Viewpoints layer failed', err))
+
+    return () => {
+      cancelled = true
+      if (map.getLayer(VIEWPOINTS_LAYER_ID)) map.removeLayer(VIEWPOINTS_LAYER_ID)
+      if (map.getSource(VIEWPOINTS_SOURCE_ID)) map.removeSource(VIEWPOINTS_SOURCE_ID)
+    }
+  }, [mapReady])
+
+  // Reflect the on/off toggle onto the Viewpoints layer visibility.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (map.getLayer(VIEWPOINTS_LAYER_ID)) {
+      map.setLayoutProperty(
+        VIEWPOINTS_LAYER_ID,
+        'visibility',
+        viewpointsOn ? 'visible' : 'none',
+      )
+    }
+  }, [viewpointsOn, mapReady])
+
+  // Click a viewpoint icon -> open the full-size photo in a lightbox.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    const onClick = (e: maplibregl.MapLayerMouseEvent) => {
+      const props = e.features?.[0]?.properties as
+        | { fid?: number | string; Date?: string; Altitude?: number }
+        | undefined
+      if (props?.fid === undefined || props.fid === null) return
+      const parts = [props.Date, typeof props.Altitude === 'number' ? `${Math.round(props.Altitude)} м` : null]
+      setViewpointModal({ fid: props.fid, caption: parts.filter(Boolean).join(' · ') || undefined })
+    }
+    const onEnter = () => {
+      map.getCanvas().style.cursor = 'pointer'
+    }
+    const onLeave = () => {
+      map.getCanvas().style.cursor = ''
+    }
+
+    map.on('click', VIEWPOINTS_LAYER_ID, onClick)
+    map.on('mouseenter', VIEWPOINTS_LAYER_ID, onEnter)
+    map.on('mouseleave', VIEWPOINTS_LAYER_ID, onLeave)
+    return () => {
+      map.off('click', VIEWPOINTS_LAYER_ID, onClick)
+      map.off('mouseenter', VIEWPOINTS_LAYER_ID, onEnter)
+      map.off('mouseleave', VIEWPOINTS_LAYER_ID, onLeave)
+    }
+  }, [mapReady])
 
   useEffect(() => {
     const listElement = listRef.current
@@ -1646,14 +1763,17 @@ function MainMap() {
     <section className="map-panel">
       <div ref={mapContainerRef} className="map-container" />
       {error ? <div className="error-toast" role="alert">{error}</div> : null}
-      {activeIdMap !== undefined && activeOptionalLayers.length > 0 ? (
-        <OverlayTogglePanel
-          idMap={activeIdMap}
-          layers={activeOptionalLayers}
-          disabled={activeDisabled ?? new Set<string>()}
-          onToggle={(name) => toggleOptional(activeIdMap, name)}
-        />
-      ) : null}
+      <OverlayTogglePanel
+        idMap={activeIdMap ?? -1}
+        layers={activeOptionalLayers}
+        disabled={activeDisabled ?? new Set<string>()}
+        onToggle={(name) => {
+          if (activeIdMap !== undefined) toggleOptional(activeIdMap, name)
+        }}
+        viewpointsOn={viewpointsOn}
+        onToggleViewpoints={() => setViewpointsOn((v) => !v)}
+      />
+
       {mountainPopup && mountainPopupPixel ? (
         <MountainPopup
           info={mountainPopup}
@@ -1676,6 +1796,9 @@ function MainMap() {
           photoId={mountainModalPhotoId}
           onClose={() => setMountainFullscreen(false)}
         />
+      ) : null}
+      {viewpointModal ? (
+        <ViewpointPhotoModal info={viewpointModal} onClose={() => setViewpointModal(null)} />
       ) : null}
       <div className="longread-wrapper">
         <MobileLongreadControls />

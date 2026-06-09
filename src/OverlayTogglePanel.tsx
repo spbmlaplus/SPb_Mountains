@@ -6,12 +6,22 @@ type Props = {
   layers: OverlayLayer[]
   disabled: Set<string>
   onToggle: (layerName: string) => void
+  // Viewpoints is a global layer, toggled independently of the per-section layers.
+  viewpointsOn?: boolean
+  onToggleViewpoints?: () => void
 }
 
-export default function OverlayTogglePanel({ idMap, layers, disabled, onToggle }: Props) {
+export default function OverlayTogglePanel({
+  idMap,
+  layers,
+  disabled,
+  onToggle,
+  viewpointsOn,
+  onToggleViewpoints,
+}: Props) {
   const [collapsed, setCollapsed] = useState(false)
 
-  if (layers.length === 0) return null
+  if (layers.length === 0 && !onToggleViewpoints) return null
 
   return (
     <div className="overlay-toggle-panel">
@@ -24,6 +34,16 @@ export default function OverlayTogglePanel({ idMap, layers, disabled, onToggle }
       </div>
       {!collapsed ? (
         <div>
+          {onToggleViewpoints ? (
+            <label className="overlay-toggle-panel__row">
+              <input
+                type="checkbox"
+                checked={!!viewpointsOn}
+                onChange={onToggleViewpoints}
+              />
+              <span>Точки обзора</span>
+            </label>
+          ) : null}
           {layers.map((layer) => {
             const checked = !disabled.has(layer.name)
             return (
