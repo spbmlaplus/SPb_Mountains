@@ -2,6 +2,30 @@
 
 Snapshot for whoever picks this up next (human or future agent session). Read top-to-bottom; entries are date-stamped — the most recent (top) supersedes earlier conflicting state.
 
+## 2026-06-09 (later) — QGIS style re-tune (renderer-v2 fix) + oracle-1 redeploy
+
+**Shipped to `https://amphitheater.pashteto.com/`. NOT yet committed to git** (working-tree change; commit/push when ready).
+
+The design team reported the map looked nothing like their QGIS styling. **Root cause:** the original style port read colors from each `.qml`'s `<elevation>` profile block (3D-profile symbols) instead of the actual map `<renderer-v2>` block. Several layers shipped wrong colors. All styles re-ported from `<renderer-v2>`.
+
+### What changed (JSON-only, except one additive code path)
+
+- **Base layers** (`src/assets/styles/base-composition-1.json` + `base-composition-3.json`, kept in lockstep):
+  - `sectors_level` → no fill + **black dashed** outline (was orange fill).
+  - `stage` → **teal 45° hatch** (`rgb(50,126,105)`) over a white wash + dark outline (was magenta solid + white hatch).
+  - `water` → **light-blue** `rgb(194,210,242)` fill, no outline (was red).
+  - `isoline_5m` / `amphitheater_bound` were already correct — unchanged.
+- **Section overlays** (`src/assets/sections/section-overlays.json`) — all 17 re-ported from `<renderer-v2>`. Single-symbol fixes incl. `vomitoria` (purple-fill→blue-line), `sector`/`stage_*` (→no-fill + dark outline), `search_bound*` (→black lines), `mask` (→QGIS black @ **0.70**, an aggressive dim — flag for visual review). `slope` stays a placeholder (no QML exists).
+- **Categorized layers** — `resettlement_after_stage` (on `type`), `landscape_12` & `landscape_7` (on `Ландшафт`) now render true per-category colors via a **new additive `fill_categories`** block → MapLibre `match` expression. `landscape_450`/`landscape_2,5` stay flat (their categories share one base color).
+- **Only code change** (additive, existing flat styles untouched): `src/layerStyles.ts` (`fillCategories` on `LayerStyle` + `fill_categories` on the manifest type + mapping) and `src/MainMap.tsx` `fillPaintFromStyle` (emits the `match` expression).
+- **Canonical QMLs now in-repo**: `src/assets/styles/*.qml` (base) + `src/assets/styles/sections/*.qml` (overlays), copied from `gavr_mounty/drive/Стили/` (+ newer `Стили 2/`). Provenance READMEs (`README-base-composition-1.md`, `src/assets/sections/README.md`) carry a "2026-06-09 re-port correction" note. See memory `qml-port-renderer-v2-not-elevation`.
+
+### Verify / deploy
+
+- `npm run build` ✅, `npm run lint` → 1 error but it's **pre-existing & unrelated** (`viewpointsOnRef.current` in the Viewpoints code, present on committed HEAD; the style change adds none).
+- Deployed per `agentic_dev/deploy-oracle-1.md` §7 (`VITE_TILE_BASE_URL=/tiles VITE_BASE_PATH=/ npm run build` + the `--exclude='/tiles/'` rsync). Pre-deploy backup at `…/html.bak.2026-06-09b`. **Hit the macOS-rsync `0600`→403 pitfall** on geojson assets — fixed with `chmod 644/755` (pruning `tiles/`); re-test geojson assets return 200 after. Smoke tests: root, JS, geojson, tile all 200.
+- **Follow-up to confirm with design:** `mask` at 70% black may read too dark; dial opacity down in `section-overlays.json` and redeploy if so. Full per-category hatch (dense3/diagonal_x/cross/PointPatternFill) is approximated as solid — revisit only if a chapter-2 landscape needs the texture.
+
 ## 2026-06-09 update — Viewpoints photo layer + oracle-1 redeploy + GitHub Pages status
 
 Committed + pushed as `b26dc9e "Viewpoints"` (origin/main in sync).

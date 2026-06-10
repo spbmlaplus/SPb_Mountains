@@ -2,6 +2,8 @@
 
 Goal: render base composition `id_layer_base=1` as an always-on stack in `MainMap.tsx`, exactly as the design spec defines it, with the right vector styles and raster blend modes. This is the first concrete slice of Phase 5 (styling adoption) — see `migration-implementation-plan.md` § Phase 5.
 
+> **STATUS 2026-06-09 — base styles re-tuned to match QGIS.** Composition #1's vector styles were re-ported from each QML's `<renderer-v2>` block; the original 2026-05-15 port had taken colors from the `<elevation>` profile block → wrong colors. Fixed: `sectors_level` (no fill + black dashed outline), `stage` (teal 45° hatch over white wash + dark outline), `water` (light-blue fill, no outline). `isoline_5m`/`amphitheater_bound` were already correct. Same values mirrored in `base-composition-3.json`. Shipped to oracle-1. See memory `qml-port-renderer-v2-not-elevation` and `README-base-composition-1.md`.
+
 **Status (2026-05-15 evening): PR-A is COMPLETE in code.**
 
 - Asset prep DONE (see `base-layer-1-prep/`).

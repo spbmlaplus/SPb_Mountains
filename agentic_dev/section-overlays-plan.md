@@ -1,5 +1,7 @@
 # Per-section overlay stacks driven by `Описание лонгрида - порядок слоев.csv`
 
+> **STATUS 2026-06-09 — styles re-ported + categorized support added.** The 13 sets and toggle UI from this plan shipped earlier. On 2026-06-09 every overlay *style* in `section-overlays.json` was re-ported from the QML `<renderer-v2>` block (the original port had read the wrong `<elevation>` block → wrong colors). Canonical QMLs now live in-repo at `src/assets/styles/sections/*.qml`. Categorized renderers (`resettlement_after_stage` on `type`; `landscape_12`/`landscape_7` on `Ландшафт`) now use a new `fill_categories` block → MapLibre `match`. QGIS hatch (dense3/diagonal_x/cross/PointPatternFill) is approximated as solid per-category fills. `slope` is the only remaining placeholder (no QML on disk). See `src/assets/sections/README.md` and memory `qml-port-renderer-v2-not-elevation`.
+
 ## Context
 
 Yes — adding layers on top of base layers is exactly what `MainMap.tsx` already does. Today, each scrolled-into-view section reads `fileList` from the Google Sheet, calls `ensureLayerOnMap` for each file, and toggles MapLibre visibility via `setLayerVisibility` (MainMap.tsx:500-508, 654-667). Section overlays are added AFTER `addBaseComposition` on `map.on('load')`, so they naturally stack above the base. There is no per-section base swap or per-layer toggle UI today.

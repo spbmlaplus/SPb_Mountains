@@ -11,7 +11,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  base: process.env.VITE_BASE_PATH ?? "/Map-View-Client/",
+  base: process.env.VITE_BASE_PATH ?? "/SPb_Mountains/",
   define: {
     'process.env': {},
   }

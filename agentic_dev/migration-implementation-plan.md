@@ -224,6 +224,8 @@ Net result: oracle-1 deployment has zero external runtime dependencies for map r
 
 ### Phase 5 — Adopt QGIS styling — **IN PROGRESS** (PR-A done in code, PR-B pending)
 
+> **2026-06-09 fidelity fix.** The QGIS styling adopted in PR-A/the overlay work was ported from the wrong block of the `.qml` files (`<elevation>` profile symbols instead of the map `<renderer-v2>`), so colors were wrong. All base + overlay styles were re-ported from `<renderer-v2>`, categorized renderers gained a `fill_categories`→`match` path, canonical QMLs were copied in-repo, and the result shipped to oracle-1. This corrects the *values*, not the architecture — PR-B's remaining scope (compositions #2/#3 CSV-baked entries, per-section selector polish) is unchanged. See `base-layer-1-plan.md` / `section-overlays-plan.md` status notes and memory `qml-port-renderer-v2-not-elevation`.
+
 Goal: replace the two-palette procedural styling with the design team's full scheme — three base-layer compositions, per-section ordered overlay stacks, ~24 named vector styles.
 
 The design team's spec lives in three CSV files under `drive/` (exported from the original `Описание лонгрида.xlsx`, now the source of truth):
