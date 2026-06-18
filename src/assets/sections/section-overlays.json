@@ -1,226 +1,420 @@
 {
-  "_comment": "Machine-readable manifest for the 13 id_map overlay stacks. Generated 2026-05-15 from `drive/Описание лонгрида - порядок слоев.csv`. Each set pairs a default base composition (1 or 3) with an ordered list of overlay layers; `id_layer_click = 1` rows are mandatory (always rendered), all others default ON and can be toggled by the user. Per-row `base_id` on the Sheet/fallback overrides `default_base` (used to disambiguate id_map=1's chapter-1 vs chapter-2 appearance). Vector styles ported from `drive/Стили/*.qml` where present; placeholders are tagged `placeholder: true`. See README.md in this folder for per-field provenance.",
+  "_comment": "23 id_map overlay stacks ported 2026-06-18 from new_legend/Порядок_слоев.csv. Single base composition #1.",
   "sets": {
     "1": {
       "default_base": 1,
-      "layers": [
-        { "name": "mountains", "style": "mountains", "mandatory": true, "label": "Горы и холмы" }
-      ]
+      "layers": []
     },
     "2": {
       "default_base": 1,
       "layers": [
-        { "name": "mask_stage", "style": "mask", "mandatory": true, "label": "Подсветка: сцена" },
-        { "name": "stage", "style": "elements", "mandatory": false, "label": "Сцена" }
+        {
+          "name": "mount",
+          "style": "mount",
+          "mandatory": true,
+          "label": "Горные вершины"
+        },
+        {
+          "name": "mount_polygon",
+          "style": "mount_polygon",
+          "mandatory": false,
+          "label": "Горные массивы"
+        }
       ]
     },
     "3": {
       "default_base": 1,
       "layers": [
-        { "name": "mask_parter", "style": "mask", "mandatory": true, "label": "Подсветка: партер" },
-        { "name": "parter", "style": "elements", "mandatory": false, "label": "Партер" }
+        {
+          "name": "mask_stage",
+          "style": "mask_stage",
+          "mandatory": true,
+          "label": "Маска сцены"
+        }
       ]
     },
     "4": {
       "default_base": 1,
       "layers": [
-        { "name": "mask_belletazh", "style": "mask", "mandatory": true, "label": "Подсветка: бельэтаж" },
-        { "name": "belletazh", "style": "elements", "mandatory": false, "label": "Бельэтаж" }
+        {
+          "name": "mask_parter",
+          "style": "mask_parter",
+          "mandatory": true,
+          "label": "Маска партера"
+        }
       ]
     },
     "5": {
       "default_base": 1,
-      "inset_images": ["amphitheater-cross-section.webp"],
       "layers": [
-        { "name": "mask_balcon", "style": "mask", "mandatory": true, "label": "Подсветка: балкон" },
-        { "name": "balcon", "style": "elements", "mandatory": false, "label": "Балкон" }
+        {
+          "name": "mask_belletazh",
+          "style": "mask_belletazh",
+          "mandatory": true,
+          "label": "Маска беллетажа"
+        }
       ]
     },
     "6": {
       "default_base": 1,
-      "inset_images": ["sector-wedge-diagram.webp"],
       "layers": [
-        { "name": "amphitheater", "style": "elements", "mandatory": true, "label": "Амфитеатр" },
-        { "name": "mask_amphitheater", "style": "mask", "mandatory": false, "label": "Маска амфитеатра" },
-        { "name": "vomitoria", "style": "vomitoria", "mandatory": false, "label": "Вомитории" }
+        {
+          "name": "mask_balcon",
+          "style": "mask_balcon",
+          "mandatory": true,
+          "label": "Маска балкона"
+        }
       ]
     },
     "7": {
       "default_base": 1,
-      "inset_images": ["sector-wedge-diagram.webp"],
       "layers": [
-        { "name": "mask_amphitheater", "style": "mask", "mandatory": true, "label": "Подсветка: амфитеатр" },
-        { "name": "sector", "style": "sector_1", "mandatory": false, "label": "Сектора" }
+        {
+          "name": "vomitoria",
+          "style": "vomitoria",
+          "mandatory": true,
+          "label": "Вомитории"
+        },
+        {
+          "name": "mask_amphitheater",
+          "style": "mask_amphitheater",
+          "mandatory": false,
+          "label": "Маска амфитеатра"
+        }
       ]
     },
     "8": {
-      "default_base": 3,
+      "default_base": 1,
       "layers": [
-        { "name": "resettlement", "style": "resettlement", "mandatory": true, "label": "Расселение" },
-        { "name": "resettlement_after_stage", "style": "resettlement_after_stage", "mandatory": false, "label": "Расселение после сцены" },
-        { "name": "stage_isolated_urban_areas", "style": "stage_isolated_urban_areas", "mandatory": false, "label": "Изолированные урбанизированные участки" },
-        { "name": "stage_barier", "style": "stage_barier", "mandatory": false, "label": "Барьер сцены" },
-        { "name": "stage", "style": "stage_1", "mandatory": false, "label": "Сцена" }
+        {
+          "name": "landscape_450",
+          "style": "landscape_450",
+          "mandatory": true,
+          "label": "Ландшафт 450 тыс. лет назад"
+        }
       ]
     },
     "9": {
-      "default_base": 3,
+      "default_base": 1,
       "layers": [
-        { "name": "historical_resettlement", "style": "historical_resettlement", "mandatory": true, "label": "Историческое расселение" },
-        { "name": "stage", "style": "stage_1", "mandatory": false, "label": "Сцена" },
-        { "name": "slope", "style": "slope", "mandatory": false, "label": "Склоны" },
-        { "name": "search_bound_one_step", "style": "search_bound_one_step", "mandatory": false, "label": "Граница поиска (шаг 1)" },
-        { "name": "search_bound", "style": "search_bound", "mandatory": false, "label": "Граница поиска" },
-        { "name": "amphitheater_bound", "style": "amphitheater_bound_1", "mandatory": false, "label": "Граница амфитеатра" }
+        {
+          "name": "landscape_12",
+          "style": "landscape_12",
+          "mandatory": true,
+          "label": "Ландшафт 12 тыс. лет назад"
+        }
       ]
     },
     "10": {
-      "default_base": 3,
+      "default_base": 1,
       "layers": [
-        { "name": "landscape_450", "style": "landscape_450", "mandatory": true, "label": "Ландшафт 450 млн лет" }
+        {
+          "name": "landscape_7",
+          "style": "landscape_7",
+          "mandatory": true,
+          "label": "Ландшафт 7 тыс. лет назад"
+        }
       ]
     },
     "11": {
-      "default_base": 3,
-      "inset_images": ["era-25-silurian-sea.webp", "era-25-silurian-glacier.webp"],
+      "default_base": 1,
       "layers": [
-        { "name": "landscape_450", "style": "landscape_450", "mandatory": true, "label": "Ландшафт 450 млн лет" },
-        { "name": "landscape_2,5", "style": "landscape_2,5", "mandatory": false, "label": "Ландшафт 2,5 млн лет" }
+        {
+          "name": "landscape_2,5",
+          "style": "landscape_2,5",
+          "mandatory": true,
+          "label": "Ландшафт 2,5 тыс. лет назад"
+        }
       ]
     },
     "12": {
-      "default_base": 3,
-      "inset_images": ["era-12-devonian.webp", "era-12-glacier.webp"],
+      "default_base": 1,
       "layers": [
-        { "name": "landscape_450", "style": "landscape_450", "mandatory": true, "label": "Ландшафт 450 млн лет" },
-        { "name": "landscape_2,5", "style": "landscape_2,5", "mandatory": false, "label": "Ландшафт 2,5 млн лет" },
-        { "name": "landscape_12", "style": "landscape_12", "mandatory": false, "label": "Ландшафт 12 тыс. лет" }
+        {
+          "name": "Finns",
+          "style": "Finns",
+          "mandatory": true,
+          "label": "Расселение финнов"
+        },
+        {
+          "name": "historical_resettlement",
+          "style": "historical_resettlement",
+          "mandatory": false,
+          "label": "Историческое расселение"
+        }
       ]
     },
     "13": {
-      "default_base": 3,
-      "inset_images": ["era-7-quaternary.webp"],
+      "default_base": 1,
       "layers": [
-        { "name": "landscape_450", "style": "landscape_450", "mandatory": true, "label": "Ландшафт 450 млн лет" },
-        { "name": "landscape_2,5", "style": "landscape_2,5", "mandatory": false, "label": "Ландшафт 2,5 млн лет" },
-        { "name": "landscape_12", "style": "landscape_12", "mandatory": false, "label": "Ландшафт 12 тыс. лет" },
-        { "name": "landscape_7", "style": "landscape_7", "mandatory": false, "label": "Ландшафт 7 тыс. лет" }
+        {
+          "name": "maki_selki",
+          "style": "maki_selki",
+          "mandatory": true,
+          "label": "Маки и сельки"
+        }
       ]
+    },
+    "14": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "maki_selki",
+          "style": "maki_selki",
+          "mandatory": true,
+          "label": "Маки и сельки"
+        },
+        {
+          "name": "historical_zones_5",
+          "style": "historical_zones_5",
+          "mandatory": false,
+          "label": "Чухонская Швейцария"
+        }
+      ]
+    },
+    "15": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "estate",
+          "style": "estate",
+          "mandatory": true,
+          "label": "Усадьбы и дачи"
+        }
+      ]
+    },
+    "16": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "historical_zones_1",
+          "style": "historical_zones_1",
+          "mandatory": true,
+          "label": "Южные усадьбы"
+        },
+        {
+          "name": "estate",
+          "style": "estate",
+          "mandatory": false,
+          "label": "Усадьбы и дачи"
+        }
+      ]
+    },
+    "17": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "historical_zones_2",
+          "style": "historical_zones_2",
+          "mandatory": true,
+          "label": "Дудергофские высоты"
+        },
+        {
+          "name": "estate",
+          "style": "estate",
+          "mandatory": false,
+          "label": "Усадьбы и дачи"
+        }
+      ]
+    },
+    "18": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "historical_zones_3",
+          "style": "historical_zones_3",
+          "mandatory": true,
+          "label": "Путиловское плато"
+        },
+        {
+          "name": "estate",
+          "style": "estate",
+          "mandatory": false,
+          "label": "Усадьбы и дачи"
+        }
+      ]
+    },
+    "19": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "historical_zones_4",
+          "style": "historical_zones_4",
+          "mandatory": true,
+          "label": "Колтушская возвышенность"
+        },
+        {
+          "name": "estate",
+          "style": "estate",
+          "mandatory": false,
+          "label": "Усадьбы и дачи"
+        }
+      ]
+    },
+    "20": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "historical_zones_5",
+          "style": "historical_zones_5",
+          "mandatory": true,
+          "label": "Чухонская Швейцария"
+        },
+        {
+          "name": "estate",
+          "style": "estate",
+          "mandatory": false,
+          "label": "Усадьбы и дачи"
+        }
+      ]
+    },
+    "21": {
+      "default_base": 1,
+      "layers": []
+    },
+    "22": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "paragliding_clubs",
+          "style": "paragliding_clubs",
+          "mandatory": true,
+          "label": "Клубы парапланеризма"
+        },
+        {
+          "name": "horse_riding_clubs",
+          "style": "horse_riding_clubs",
+          "mandatory": false,
+          "label": "Клубы верховой езды"
+        },
+        {
+          "name": "ski_resorts",
+          "style": "ski_resorts",
+          "mandatory": false,
+          "label": "Горнолыжные курорты"
+        },
+        {
+          "name": "golf_clubs",
+          "style": "golf_clubs",
+          "mandatory": false,
+          "label": "Гольф-клубы"
+        },
+        {
+          "name": "motocross",
+          "style": "motocross",
+          "mandatory": false,
+          "label": "Треки мотокросса"
+        },
+        {
+          "name": "walking_routes",
+          "style": "walking_routes",
+          "mandatory": false,
+          "label": "Пешие маршруты"
+        }
+      ]
+    },
+    "23": {
+      "default_base": 1,
+      "layers": []
     }
   },
   "styles": {
-    "mountains": {
+    "mount": {
       "type": "point-symbol",
       "icon": "▲",
-      "color": "rgb(40, 40, 40)",
-      "halo_color": "rgba(255, 246, 226, 0.8)",
+      "color": "rgb(0, 0, 0)",
+      "halo_color": "rgba(255, 255, 255, 0.9)",
       "halo_width_px": 1,
       "size_px": {
-        "z_low": 9,  "size_low": 10,
-        "z_high": 14, "size_high": 14
+        "z_low": 9,
+        "size_low": 10,
+        "z_high": 14,
+        "size_high": 14
+      },
+      "qml": "src/assets/styles/sections/mount.qml"
+    },
+    "mount_polygon": {
+      "qml": "src/assets/styles/sections/mount_polygon.qml",
+      "fill": {
+        "color": "rgb(185, 219, 210)",
+        "opacity": 0.25
+      },
+      "outline": {
+        "color": "rgb(143, 209, 187)",
+        "width_px": 1.3
       }
     },
-    "mask": {
-      "qml": "src/assets/styles/sections/mask.qml",
-      "note": "Faithful to mask.qml <renderer-v2>: SimpleFill black rgb(0,0,0) @ alpha 0.70, outline_style 'no'. (The previous note claiming a mustard fill rgb(190,207,80) was a mix-up — that color belongs to stage_1.qml, not mask.) 0.70 is an aggressive dim; lower opacity if the masked area reads too dark against the relief.",
-      "fill": { "color": "rgb(0,0,0)", "opacity": 0.7 }
+    "mask_stage": {
+      "qml": "src/assets/styles/sections/mask_stage.qml",
+      "fill": {
+        "color": "rgb(0, 0, 0)",
+        "opacity": 0.7
+      },
+      "outline": {
+        "color": "rgb(143, 209, 187)",
+        "width_px": 1.3
+      }
     },
-    "elements": {
-      "qml": "src/assets/styles/sections/elements.qml",
-      "note": "Verified faithful to elements.qml <renderer-v2>: SimpleFill with style 'no' (no fill) + a pale-teal outline rgb(185,219,210) at 0.46 mm (~1.3 px). Outline-only.",
-      "outline": { "color": "rgb(185,219,210)", "width_px": 1.3 },
-      "line": { "color": "rgb(185,219,210)", "width_px": 1.3 }
+    "mask_parter": {
+      "qml": "src/assets/styles/sections/mask_parter.qml",
+      "fill": {
+        "color": "rgb(0, 0, 0)",
+        "opacity": 0.7
+      },
+      "outline": {
+        "color": "rgb(143, 209, 187)",
+        "width_px": 1.3
+      }
+    },
+    "mask_belletazh": {
+      "qml": "src/assets/styles/sections/mask_belletazh.qml",
+      "fill": {
+        "color": "rgb(0, 0, 0)",
+        "opacity": 0.7
+      },
+      "outline": {
+        "color": "rgb(143, 209, 187)",
+        "width_px": 1.3
+      }
+    },
+    "mask_balcon": {
+      "qml": "src/assets/styles/sections/mask_balcon.qml",
+      "fill": {
+        "color": "rgb(0, 0, 0)",
+        "opacity": 0.7
+      },
+      "outline": {
+        "color": "rgb(143, 209, 187)",
+        "width_px": 1.3
+      }
+    },
+    "mask_amphitheater": {
+      "qml": "src/assets/styles/sections/mask_amphitheater.qml",
+      "fill": {
+        "color": "rgb(0, 0, 0)",
+        "opacity": 0.7
+      },
+      "outline": {
+        "color": "rgb(143, 209, 187)",
+        "width_px": 1.3
+      }
     },
     "vomitoria": {
       "qml": "src/assets/styles/sections/vomitoria.qml",
-      "note": "Faithful to vomitoria.qml <renderer-v2>: a single SimpleLine in vivid blue rgb(29,70,205), 0.66 mm (~1.9 px), solid — no fill. The previous purple fill rgb(141,90,153) was invented.",
-      "outline": { "color": "rgb(29,70,205)", "width_px": 1.9 },
-      "line": { "color": "rgb(29,70,205)", "width_px": 1.9 }
-    },
-    "sector_1": {
-      "qml": "src/assets/styles/sections/sector.qml",
-      "note": "Faithful to sector.qml <renderer-v2>: SimpleFill with transparent fill (255,255,255 @ alpha 0) + a black solid outline at 0.1 mm — no fill. Like sectors_level but solid (not dashed). The previous red fill/outline/line was invented.",
-      "outline": { "color": "rgb(0,0,0)", "width_px": 1.0 },
-      "line": { "color": "rgb(0,0,0)", "width_px": 1.0 }
-    },
-    "resettlement": {
-      "qml": "src/assets/styles/sections/resettlement.qmd.qml",
-      "note": "Faithful to resettlement.qmd.qml <renderer-v2>: SimpleFill pink rgb(243,78,157), fill style 'dense3' (sparse hatch), outline_style 'no'. MapLibre renders the dense3 density as a solid fill at opacity 0.4. The previous yellow rgb(213,180,60) + outline was invented.",
-      "fill": { "color": "rgb(243,78,157)", "opacity": 0.4 }
-    },
-    "resettlement_after_stage": {
-      "qml": "src/assets/styles/sections/resettlement_after_stage.qml",
-      "note": "Faithful to resettlement_after_stage.qml <renderer-v2>: categorizedSymbol on `type` (5 land-use classes IND/MF/MU/PKG/SF), all dense3 fill, outline_style 'no'. Rendered as per-category solid fills via fill_categories (dense3 → solid). The previous flat green rgb(114,155,111) was invented.",
-      "fill_categories": {
-        "property": "type",
-        "opacity": 0.4,
-        "cases": {
-          "IND": "rgb(29,70,205)",
-          "MF": "rgb(224,23,23)",
-          "MU": "rgb(243,78,157)",
-          "PKG": "rgb(118,134,178)",
-          "SF": "rgb(255,133,60)"
-        },
-        "default": "rgb(118,134,178)"
+      "line": {
+        "color": "rgb(29, 70, 205)",
+        "width_px": 1.9
       }
-    },
-    "stage_isolated_urban_areas": {
-      "qml": "src/assets/styles/sections/stage_isolated_urban_areas.qml",
-      "note": "Faithful to stage_isolated_urban_areas.qml <renderer-v2>: SimpleFill style 'no' (no fill) + a dark dashed outline rgb(35,35,35) at 0.3 mm. The previous purple fill was invented.",
-      "outline": { "color": "rgb(35,35,35)", "width_px": 1.0, "dasharray": [4, 2] }
-    },
-    "stage_barier": {
-      "qml": "src/assets/styles/sections/stage_barier.qml",
-      "note": "Faithful to stage_barier.qml <renderer-v2>: SimpleFill style 'no' (no fill) + a dark dashed outline rgb(35,35,35) at 0.3 mm. Same renderer as stage_isolated_urban_areas. The previous purple fill was invented.",
-      "outline": { "color": "rgb(35,35,35)", "width_px": 1.0, "dasharray": [4, 2] }
-    },
-    "stage_1": {
-      "qml": "src/assets/styles/sections/stage_1.qml",
-      "note": "Faithful to stage_1.qml <renderer-v2>: SimpleFill with fill style 'no' (the mustard rgb(190,207,80) color is set but not rendered, since style='no') + a solid dark outline rgb(35,35,35) at 0.46 mm (~1.3 px). Outline-only. Distinct from base composition #1's `stage`. The previous purple fill was invented.",
-      "outline": { "color": "rgb(35,35,35)", "width_px": 1.3 }
-    },
-    "historical_resettlement": {
-      "qml": "src/assets/styles/sections/historical_resettlement.qml",
-      "note": "Verified faithful to historical_resettlement.qml <renderer-v2>: SimpleFill vivid orange rgb(218,89,12), fill style 'dense3', outline_style 'no'. dense3 rendered as a solid fill at opacity 0.4. No outline/line (the previous line was invented).",
-      "fill": { "color": "rgb(218,89,12)", "opacity": 0.4 }
-    },
-    "slope": {
-      "placeholder": true,
-      "note": "No QML on disk; muted olive distinguishes from search_bound (red) and resettlement (yellow). Replace when design ships canonical QML.",
-      "fill": { "color": "rgb(120,140,110)", "opacity": 0.3 },
-      "outline": { "color": "rgb(80,95,73)", "width_px": 1.0 },
-      "line": { "color": "rgb(120,140,110)", "width_px": 1.7 }
-    },
-    "search_bound_one_step": {
-      "qml": "src/assets/styles/sections/search_bound_one_step.qml",
-      "note": "Faithful to search_bound_one_step.qml <renderer-v2>: a single SimpleLine, black rgb(0,0,0), 0.3 mm (~1.0 px), dashed (use_custom_dash=1, customdash 2;1 → [2,1]). No fill. The previous red fill/outline was invented.",
-      "outline": { "color": "rgb(0,0,0)", "width_px": 1.0, "dasharray": [2, 1] },
-      "line": { "color": "rgb(0,0,0)", "width_px": 1.0, "dasharray": [2, 1] }
-    },
-    "search_bound": {
-      "qml": "src/assets/styles/sections/search_bound.qml",
-      "note": "Faithful to search_bound.qml <renderer-v2>: a single SimpleLine, black rgb(0,0,0), 0.5 mm (~1.4 px), solid. No fill. The previous red fill/outline was invented.",
-      "outline": { "color": "rgb(0,0,0)", "width_px": 1.4 },
-      "line": { "color": "rgb(0,0,0)", "width_px": 1.4 }
-    },
-    "amphitheater_bound_1": {
-      "qml": "src/assets/styles/sections/amphitheater_bound_1.qml",
-      "note": "Verified faithful to amphitheater_bound_1.qml <renderer-v2>: solid dark-charcoal SimpleLine rgb(67,69,69) at 0.9 mm (~2.5 px). Thicker variant of base composition #1's `amphitheater_bound` (0.5 mm). Not dashed.",
-      "line": { "color": "rgb(67,69,69)", "width_px": 2.5 }
     },
     "landscape_450": {
       "qml": "src/assets/styles/sections/landscape_450.qml",
-      "note": "Verified: landscape_450.qml <renderer-v2> is categorizedSymbol on `Ландшафт` (Ижорское плато / Путиловское плато) but BOTH categories share the same peach base rgb(244,154,90) with dense5/dense6 hatch — so a single flat fill is faithful (no per-category difference). Hatch approximated as solid @ 0.4. No outline (QML uses sub-pixel dot).",
-      "fill": { "color": "rgb(244,154,90)", "opacity": 0.4 }
-    },
-    "landscape_2,5": {
-      "qml": "src/assets/styles/sections/landscape_2,5.qml",
-      "note": "Verified: landscape_2,5.qml <renderer-v2> is categorizedSymbol on `Ландшафт` (Дудергофские высоты rgb(202,207,90) / Моренный пояс rgb(191,195,92)) — near-identical olives with dense6 hatch. Kept as a single flat olive fill (difference is imperceptible). Hatch approximated as solid @ 0.4. No outline.",
-      "fill": { "color": "rgb(202,207,90)", "opacity": 0.4 }
+      "fill": {
+        "color": "rgb(244, 154, 90)",
+        "opacity": 0.4
+      }
     },
     "landscape_12": {
       "qml": "src/assets/styles/sections/landscape_12.qml",
-      "note": "Faithful to landscape_12.qml <renderer-v2>: categorizedSymbol on `Ландшафт` (5 categories with diagonal_x/cross/dense7/solid hatch over a pale base). Rendered as per-category solid fills using the saturated hatch color as representative. The previous flat rgb(231,113,72) + outline was invented.",
       "fill_categories": {
         "property": "Ландшафт",
         "opacity": 0.4,
@@ -236,21 +430,155 @@
     },
     "landscape_7": {
       "qml": "src/assets/styles/sections/landscape_7.qml",
-      "note": "Faithful to landscape_7.qml <renderer-v2>: categorizedSymbol on `Ландшафт` (5 categories; mix of PointPatternFill / hatch / solid). Rendered as per-category solid fills. The previous flat purple rgb(141,90,153) appears nowhere in the QML palette.",
-      "fill_categories": {
-        "property": "Ландшафт",
-        "opacity": 0.4,
-        "cases": {
-          "Литориновая лагуна": "rgb(161,193,160)",
-          "Литориновая терраса": "rgb(244,154,90)",
-          "Литориновые дюны": "rgb(244,154,90)",
-          "Приневская глинистая терраса": "rgb(240,242,196)",
-          "Приневская песчаная терраса": "rgb(255,218,143)"
-        },
-        "default": "rgb(244,154,90)"
+      "fill": {
+        "color": "rgb(141, 90, 153)",
+        "opacity": 0.35
+      }
+    },
+    "landscape_2,5": {
+      "qml": "src/assets/styles/sections/landscape_2,5.qml",
+      "fill": {
+        "color": "rgb(202, 207, 90)",
+        "opacity": 0.4
+      }
+    },
+    "Finns": {
+      "qml": "src/assets/styles/sections/Finns.qml",
+      "fill": {
+        "color": "rgb(29, 70, 205)",
+        "opacity": 0.6
+      },
+      "outline": {
+        "color": "rgb(29, 70, 205)",
+        "width_px": 1.0
+      }
+    },
+    "historical_resettlement": {
+      "qml": "src/assets/styles/sections/historical_resettlement.qml",
+      "fill": {
+        "color": "rgb(218, 89, 12)",
+        "opacity": 0.4
+      }
+    },
+    "maki_selki": {
+      "qml": "src/assets/styles/sections/maki_selki.qml",
+      "fill": {
+        "color": "rgb(50, 126, 105)",
+        "opacity": 0.35
+      },
+      "outline": {
+        "color": "rgb(35, 35, 35)",
+        "width_px": 1.0
+      }
+    },
+    "estate": {
+      "qml": "src/assets/styles/sections/estate.qml",
+      "fill": {
+        "color": "rgb(56, 62, 81)",
+        "opacity": 0.7
+      },
+      "outline": {
+        "color": "rgb(56, 62, 81)",
+        "width_px": 1.0
+      }
+    },
+    "historical_zones_1": {
+      "qml": "src/assets/styles/sections/historical_zones_1.qml",
+      "outline": {
+        "color": "rgb(35, 35, 35)",
+        "width_px": 1.9,
+        "dasharray": [
+          1,
+          2
+        ]
+      }
+    },
+    "historical_zones_2": {
+      "qml": "src/assets/styles/sections/historical_zones_2.qml",
+      "outline": {
+        "color": "rgb(35, 35, 35)",
+        "width_px": 1.9,
+        "dasharray": [
+          1,
+          2
+        ]
+      }
+    },
+    "historical_zones_3": {
+      "qml": "src/assets/styles/sections/historical_zones_3.qml",
+      "outline": {
+        "color": "rgb(35, 35, 35)",
+        "width_px": 1.9,
+        "dasharray": [
+          1,
+          2
+        ]
+      }
+    },
+    "historical_zones_4": {
+      "qml": "src/assets/styles/sections/historical_zones_4.qml",
+      "outline": {
+        "color": "rgb(35, 35, 35)",
+        "width_px": 1.9,
+        "dasharray": [
+          1,
+          2
+        ]
+      }
+    },
+    "historical_zones_5": {
+      "qml": "src/assets/styles/sections/historical_zones_5.qml",
+      "outline": {
+        "color": "rgb(35, 35, 35)",
+        "width_px": 1.9,
+        "dasharray": [
+          1,
+          2
+        ]
+      }
+    },
+    "paragliding_clubs": {
+      "qml": "src/assets/styles/sections/paragliding_clubs.qml",
+      "fill": {
+        "color": "rgb(141, 90, 153)",
+        "opacity": 0.5
+      }
+    },
+    "horse_riding_clubs": {
+      "qml": "src/assets/styles/sections/horse_riding_clubs.qml",
+      "fill": {
+        "color": "rgb(141, 90, 153)",
+        "opacity": 0.5
+      }
+    },
+    "ski_resorts": {
+      "qml": "src/assets/styles/sections/ski_resorts.qml",
+      "fill": {
+        "color": "rgb(141, 90, 153)",
+        "opacity": 0.5
+      }
+    },
+    "golf_clubs": {
+      "qml": "src/assets/styles/sections/golf_clubs.qml",
+      "fill": {
+        "color": "rgb(141, 90, 153)",
+        "opacity": 0.5
+      }
+    },
+    "motocross": {
+      "qml": "src/assets/styles/sections/motocross.qml",
+      "fill": {
+        "color": "rgb(141, 90, 153)",
+        "opacity": 0.5
+      }
+    },
+    "walking_routes": {
+      "qml": "src/assets/styles/sections/walking_routes.gpk_-_walking_routes.qml",
+      "line": {
+        "color": "rgb(29, 70, 205)",
+        "width_px": 2.0
       }
     }
   },
-  "px_per_mm_assumption": 2.83,
-  "calibration_note": "QML widths are in mm; MapLibre line-width is in px. QML's 0.6 mm line (≈1.7 px) and 0.2 mm outline (≈0.57 px) are used as-is for `line` and bumped to 1.0 px for outlines (matches base composition #1's calibration). Fill opacities are calibrated downward to 0.3–0.4 (from QML's 1.0) so overlays read against the relief base; tune per-style as needed."
+  "px_per_mm_assumption": 2.83
 }

@@ -24,6 +24,10 @@ dist-ssr
 *.sw?
 src/assets/layers/relief.tif
 src/assets/layers/isoline_5m.geojson
+src/assets/layers/isoline_2m.geojson
+new_files/layers/isoline_2m.geojson
+new_files/layers/isoline_5m.geojson
+new_files/layers/relief_water1.tif
 
 # Local-dev fallback for self-hosted raster tiles
 public/tiles/

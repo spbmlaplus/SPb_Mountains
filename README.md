@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# СПб Горы — интерактивная карта и лонгрид
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Веб-приложение: карта окрестностей Санкт-Петербурга (MapLibre GL) + лонгрид с привязкой слоёв к секциям (`id_map`).
 
-Currently, two official plugins are available:
+## Просмотр
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+| Среда | Ссылка |
+|---|---|
+| **GitHub Pages (прод)** | [https://spbmlaplus.github.io/SPb_Mountains/](https://spbmlaplus.github.io/SPb_Mountains/) |
+| **Локально** | `npm run dev` → [http://localhost:5173/SPb_Mountains/](http://localhost:5173/SPb_Mountains/) |
 
-## React Compiler
+После `git push` в `main` GitHub Actions автоматически собирает и публикует на Pages (см. `.github/workflows/deploy.yml`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Быстрый старт
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm ci
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Сборка:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build
 ```
+
+Переменные окружения (см. `.env.example`):
+
+- `VITE_TILE_BASE_URL` — базовый URL тайлов (по умолчанию `https://spbmlaplus.github.io/spb_mountains_tiles`)
+- `VITE_BASE_PATH` — base path Vite (`/SPb_Mountains/` для GitHub Pages)
+
+## Обновление данных из `new_files/` и `new_legend/`
+
+```bash
+# Слои и стили
+python scripts/copy-new-assets.py
+
+# Манифест id_map (23 набора)
+python scripts/gen-section-overlays.py
+
+# Текст лонгрида (fallback)
+python scripts/gen-fallback-longread.py
+
+# URL-карта geojson для бандла (только слои из манифестов)
+python scripts/gen-layer-urls.py
+```
+
+## Структура
+
+- `src/assets/layers/` — GeoJSON слои
+- `src/assets/sections/section-overlays.json` — 23 набора `id_map`
+- `src/assets/styles/base-composition-1.json` — базовая композиция (Positron + relief_water1 + векторы)
+- `src/fallbackLongread.ts` — контент лонгрида при недоступности Google Sheets
+- `new_files/`, `new_legend/` — исходники от дизайн-команды

@@ -19,6 +19,11 @@ import MountainPhotoFullscreen from './MountainPhotoFullscreen'
 import MobileLongreadControls from './MobileLongreadControls'
 import { viewpointIcons } from './viewpointPhotos'
 import ViewpointPhotoModal, { type ViewpointInfo } from './ViewpointPhotoModal'
+import { fallbackLongreadItems } from './fallbackLongread'
+import type { BaseId, ContentItem } from './contentTypes'
+import { LAYER_URL_BY_FILE } from './layerUrls'
+
+export type { ContentItem } from './contentTypes'
 
 const sheetId = "1eRYnMzPMGck6lGlwGUCkT3tvwWLIQKRLvJ8dgu3oGnk";
 const sheetsApiKey = "AIzaSyDhhReA6Fe3i-p8TzL1Xr4DESg_D2YrWhE";
@@ -27,7 +32,6 @@ const sheetsApiKey = "AIzaSyDhhReA6Fe3i-p8TzL1Xr4DESg_D2YrWhE";
 //   G=Coordinates_zoom, H=Zoom, I=id _map, J=Описание что на картах.
 const sheetsRange = 'Лист1!A:J';
 
-type BaseId = 1 | 3
 const isBaseId = (n: number): n is BaseId => n === 1 || n === 3
 
 type GeometryCoordinates =
@@ -51,22 +55,7 @@ type GeoJsonFeatureCollection = Omit<FeatureCollection, 'features'> & {
   features: GeoJsonFeature[]
 }
 
-export type ContentItem = {
-  id: string
-  title: string
-  fileList: string[]
-  description: string
-  chapter?: string
-  id_map?: number
-  base_id?: BaseId
-  mediaLink?: string
-}
-
-const layerModules = import.meta.glob('./assets/layers/*.geojson', {
-  query: '?url',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>
+const fileUrlByName = LAYER_URL_BY_FILE
 
 const insetModules = import.meta.glob('./assets/insets/*.{webp,svg,png}', {
   query: '?url',
@@ -81,7 +70,7 @@ const insetUrlByName: Record<string, string> = Object.fromEntries(
 // Full-width longread figures. The CSV's `Media Link` column names the figure
 // (e.g. `amphitheater.png`, `landscape_450.png`); the files on disk are the
 // design team's renumbered 1.png–5.png set under `assets/longread/`.
-const longreadImageModules = import.meta.glob('./assets/longread/*.png', {
+const longreadImageModules = import.meta.glob('./assets/longread/*.{png,jpg,jpeg,webp}', {
   query: '?url',
   import: 'default',
   eager: true,
@@ -98,251 +87,13 @@ const longreadImageByMediaName: Record<string, string | undefined> = {
   'amphitheater.png': longreadByBasename['1.png'],
   'landscape_450.png': longreadByBasename['2.png'],
   'landscape_2,5.png': longreadByBasename['3.png'],
+  'landscape_25.png': longreadByBasename['3.png'],
   'landscape_12.png': longreadByBasename['4.png'],
   'landscape_7.png': longreadByBasename['5.png'],
 }
 
-const fallbackContentItems: ContentItem[] = ([
-  {
-    id: 'amphitheater',
-    title: 'Амфитеатр',
-    fileList: [],
-    id_map: 1,
-    base_id: 1,
-    description:
-      'Амфитеатр состоит из сцены, нескольких ярусов зрительного зала (партер, бельэтаж, балкон) и вомиториев — проходов между секторами. Подобная структура удивительно точно повторяется в рельефе окрестностей Санкт-Петербурга',
-  },
-  {
-    id: 'stage',
-    title: 'Сцена',
-    fileList: ['stage.geojson', 'mask_stage.geojson'],
-    id_map: 2,
-    base_id: 1,
-    description:
-      '<b>Сцена</b> — центральное пространство, на которое направлен взгляд зрителей. В географии Петербурга этой «сценой» является плотное урбанизированное ядро города, расположенное в Приневской низине. Вокруг этой низины располагаются три возвышающиеся ступени рельефа, напоминающие ярусы зрительного зала амфитеатра.',
-  },
-  {
-    id: 'parter',
-    title: 'Партер',
-    fileList: ['parter.geojson', 'mask_parter.geojson'],
-    id_map: 3,
-    base_id: 1,
-    description:
-      'Партер — нижний ярус, ближайший к сцене. Ему соответствует литориновый уступ — берег древнего Литоринового моря, который проходит как на севере, так и на юге города.',
-  },
-  {
-    id: 'belletazh',
-    title: 'Бельэтаж',
-    fileList: ['belletazh.geojson', 'mask_belletazh.geojson'],
-    id_map: 4,
-    base_id: 1,
-    description:
-      'Бельэтаж — второй ярус, расположенный выше партера. На юге ему соответствует моренный пояс (например, Пулковские высоты и Троицкая гора). На севере эту ступень образуют камовые гряды (Юкки, Парголово), а на востоке — камовые холмы (Колтушская и Румболовская возвышенности).',
-  },
-  {
-    id: 'balcon',
-    title: 'Балкон',
-    fileList: ['balcon.geojson', 'mask_balcon.geojson'],
-    id_map: 5,
-    base_id: 1,
-    description:
-      'Балкон — самый высокий ярус. В петербургском «амфитеатре» ему соответствуют крупные возвышенности: на юге — Ордовикское (Ижорское) и Силурийское (Путиловское) плато, ограниченные Балтийско-Ладожским уступом (глинтом); на севере — Лемболовская возвышенность, на востоке — Угловские высоты.',
-  },
-  {
-    id: 'vomitoria',
-    title: 'Вомитории',
-    fileList: ['vomitoria.geojson', 'mask_amphitheater.geojson'],
-    id_map: 6,
-    base_id: 1,
-    description:
-      'Вомитории — естественные коридоры, проходы между ярусами седений от выхода к сцене. В природном рельефе их роль выполняют долины рек, которые стекают с возвышенностей в Неву или Финский залив, формируя каньоны. Среди них — Тосна, Ижора, Дудергофка, Сестра и другие.',
-  },
-  {
-    id: 'sector',
-    title: 'Сектора',
-    fileList: ['sector.geojson', 'mask_amphitheater.geojson'],
-    id_map: 7,
-    base_id: 1,
-    description: 'Сектора — разделенные вомиториями ярусы сидений.',
-  },
-  {
-    id: 'boundaries',
-    title: 'Границы',
-    fileList: [],
-    id_map: 1,
-    base_id: 1,
-    description: 'Границы в исследовании — это всегда условность, инструмент для удобства анализа. Мы подошли к задаче определения территории исследования творчески, опираясь на морфологию и ландшафты города: выделили внешнюю границу — широкий контекст агломерации и внутреннюю — плотное урбанизированное ядро, или "сцену Амфитеатра".',
-  },
-  {
-    id: 'innerBoundaries',
-    title: 'Внутренняя граница',
-    fileList: ['resettlement.geojson', 'resettlement_after_stage.geojson', 'stage_isolated_urban_areas.geojson', 'stage_barier.geojson', 'stage.geojson'],
-    id_map: 8,
-    base_id: 3,
-    description: `
-      - это граница сцены Амфитеатра, плотное урбанизированное ядро агломерации Петербурга. По сути, это непрерывный город, ткань которого сформировалась достаточно давно и не разрывается крупными барьерами. Для определения этой границы, нам понадобились следующие слои:
-      <ul>
-        <li>Плотная застройка: кварталы с плотностью > 100 зданий на км², которые сформировались до 1950 года. Они образуют сплошную ткань, которая не прерывается крупными барьерами.</li>
-        <li>Планировочные барьеры: крупные автомагистрали вроде КАД, железные дороги и реки — они разрезают город на куски.</li>
-        <li>Разрывы в застройке (>200 м): парки, луга, леса, пустыри и парковки, которые прерывают плотную ткань кварталов.</li>
-      </ul>
-    `,
-  },
-  {
-    id: 'outerBoundaries',
-    title: 'Внешняя граница',
-    fileList: ['historical_resettlement.geojson', 'stage.geojson', 'slope.geojson', 'search_bound_one_step.geojson', 'search_bound.geojson', 'amphitheater_bound.geojson'],
-    id_map: 9,
-    base_id: 3,
-    description: `
-      — это граница Амфитеатра, край ближней периферии (или окрестностей) агломерации Петербурга. По сути, она задает ландшафтно-градостроительный комплекс:  территорию, где экосистема (реки, рельеф, и тд) и расселение людей (города, дороги, инфраструктура) тесно переплетены и влияют друг на друга.
-      <br />
-      Для определения внешней границы мы использовали слои из области геоморфологии и структуры модели расселения: 
-      <br />
-      <b>Бровка рельефа</b> — линия резкого перелома рельефа, отделяющая пологий участок или горизонтальную поверхность от более крутого склона. Бровка определяет, где заканчивается ландшафт низменности и начинается — возвышенности.
-      <br />
-      <b>Историческая система расселения</b> —  текст в разработке
-    `,
-  }
-] as ContentItem[]).map((item) => ({ chapter: 'Как устроен амфитеатр', ...item }))
-
-// Image rows + chapter-2 content sourced from
-// `drive/Описание лонгрида - лонгрид.csv` (the design team's source of truth).
-// The live Google Sheet still has the legacy 4-column schema (id/title/
-// fileList/description) so it doesn't include these rows yet — we merge them
-// in until the sheet is migrated.
-const amphitheaterFigureItem: ContentItem = {
-  id: 'amphitheater-overview',
-  title: 'Амфитеатр',
-  chapter: 'Как устроен амфитеатр',
-  fileList: [],
-  id_map: 7,
-  base_id: 1,
-  description: '',
-  mediaLink: 'amphitheater.png',
-}
-
-const chapter2SupplementItems: ContentItem[] = ([
-  {
-    id: 'mountains-intro',
-    title: 'Горы Петербурга — геологическая летопись',
-    fileList: [],
-    id_map: 1,
-    base_id: 3,
-    description:
-      'В окрестностях Петербурга насчитывается 101 именная гора, высота и холм. Эти возвышенности образуют своеобразное природное кольцо вокруг города, которое иногда называют Петербургским амфитеатром. Их происхождение связано с древними геологическими процессами: одни холмы сложены известняками древних морей, другие образованы ледниками, а самые молодые связаны с берегами древнего Балтийского моря. Даже растительность отражает это прошлое: на песчаных камах чаще растут сосны, на глинистых моренах — еловые леса, а на известняковых возвышенностях юга — лиственные.',
-  },
-  {
-    id: 'mountains-how',
-    title: 'Как появились горы вокруг Петербурга?',
-    fileList: [],
-    id_map: 1,
-    base_id: 3,
-    description:
-      '<b>Как появились горы вокруг Петербурга?</b><br /><br />Рельеф региона формировался на протяжении сотен миллионов лет. Сначала здесь было дно древнего моря, затем территорию покрывали огромные ледники, а позже возникли берега древнего Балтийского моря. Каждый из этих этапов оставил свой след в ландшафте и сформировал разные «ярусы» возвышенностей вокруг города.',
-  },
-  {
-    id: 'era-450',
-    title: '450 млн лет назад — конец ордовика, начало силура',
-    fileList: [],
-    id_map: 10,
-    base_id: 3,
-    description:
-      '<b>450 млн лет назад — конец ордовика, начало силура</b><br /><br />Территория будущего Петербурга была покрыта мелководным морем. Здесь накапливались осадочные породы — известняки, песчаники и мергели, формируя основу будущих плато и уступов. Эти осадки стали фундаментом, на котором впоследствии сформировались основные ступени амфитеатра.',
-  },
-  {
-    id: 'era-450-figure',
-    title: '',
-    fileList: [],
-    id_map: 10,
-    base_id: 3,
-    description: '',
-    mediaLink: 'landscape_450.png',
-  },
-  {
-    id: 'era-2_5',
-    title: '2,5 млн лет назад — силурийский период',
-    fileList: [],
-    id_map: 11,
-    base_id: 3,
-    description:
-      '<b>2,5 млн лет назад — силурийский период</b><br /><br />Происходило постепенное поднятие морского дна, формировались ордовикские и силурийские платформы. Эти поднятия стали прообразом современных высоких уступов — Ордовикского и Силурийского плато, включая Дудергофские высоты, Путиловское плато и Балтийско-Ладожский глинт.',
-  },
-  {
-    id: 'era-2_5-figure',
-    title: '',
-    fileList: [],
-    id_map: 11,
-    base_id: 3,
-    description: '',
-    mediaLink: 'landscape_2,5.png',
-  },
-  {
-    id: 'era-12',
-    title: '12 тыс. лет назад — девонский период',
-    fileList: [],
-    id_map: 12,
-    base_id: 3,
-    description:
-      '<b>12 тыс. лет назад — девонский период</b><br /><br />На месте древнего Литоринового моря образовался литориновый уступ — низменная терраса, которая стала нижним ярусом «амфитеатра» Петербурга. В этот период также шло накопление осадочных и ледниковых отложений, закладывавших моренный пояс, камовые гряды и холмы, будущие бельэтаж и балкон рельефа.',
-  },
-  {
-    id: 'era-12-figure',
-    title: '',
-    fileList: [],
-    id_map: 12,
-    base_id: 3,
-    description: '',
-    mediaLink: 'landscape_12.png',
-  },
-  {
-    id: 'era-7',
-    title: '7 тыс. лет назад — четвертичный период',
-    fileList: [],
-    id_map: 13,
-    base_id: 3,
-    description:
-      '<b>7 тыс. лет назад — четвертичный период</b><br /><br />Рельеф окончательно оформился под действием ледниковых потоков, выветривания и эрозии. Речные долины, карстовые углубления и каньоны образовали естественные «вомитории», отделяющие возвышенности друг от друга и формируя сеть рек, стекающих в Неву и Финский залив.',
-  },
-  {
-    id: 'era-7-figure',
-    title: '',
-    fileList: [],
-    id_map: 13,
-    base_id: 3,
-    description: '',
-    mediaLink: 'landscape_7.png',
-  },
-] as ContentItem[]).map((item) => ({
-  chapter: 'Горы Петербурга — геологическая летопись',
-  ...item,
-}))
-
-// If the live source (sheet) is missing image-only rows or chapter 2, weave
-// the CSV-derived content in. Insertion anchors: amphitheater figure goes
-// right after the chapter-1 `sector` item; chapter 2 appends at the end.
-const mergeFrame44Supplement = (items: ContentItem[]): ContentItem[] => {
-  const hasFigures = items.some((i) => i.mediaLink)
-  const hasChapter2 = items.some((i) => i.chapter && isChapter2(i.chapter))
-  if (hasFigures && hasChapter2) return items
-
-  const result: ContentItem[] = []
-  let figureInserted = false
-  for (const item of items) {
-    result.push(item)
-    if (!hasFigures && !figureInserted && item.id === 'sector') {
-      result.push(amphitheaterFigureItem)
-      figureInserted = true
-    }
-  }
-  if (!hasFigures && !figureInserted) {
-    result.push(amphitheaterFigureItem)
-  }
-  if (!hasChapter2) {
-    result.push(...chapter2SupplementItems)
-  }
-  return result
-}
+const resolveLongreadFigure = (mediaLink: string) =>
+  longreadImageByMediaName[mediaLink] ?? longreadByBasename[mediaLink]
 
 type SheetValuesResponse = {
   values?: string[][]
@@ -363,12 +114,6 @@ const sanitizeItemId = (value: string, fallbackIndex: number) => {
 
   return normalized || `sheet-item-${fallbackIndex}`
 }
-
-// True for any chapter header whose Russian copy refers to the geological
-// "Горы Петербурга" arc (chapter 2). Chapter 2 always uses base #3, including
-// for id_map=1's recap shot — this overrides the manifest's `default_base`.
-const isChapter2 = (chapter: string) =>
-  /горы петербурга|геологическая летопись/i.test(chapter)
 
 const parseSheetRows = (rows: string[][]): ContentItem[] => {
   if (rows.length === 0) {
@@ -420,7 +165,7 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
       // Resolve base_id: explicit column > chapter inference (chapter 2 = base 3).
       const explicitBaseId =
         Number.isFinite(baseIdParsed) && isBaseId(baseIdParsed) ? baseIdParsed : undefined
-      const inferredBaseId: BaseId | undefined = isChapter2(chapter) ? 3 : undefined
+      const resolvedBaseId: BaseId = explicitBaseId ?? 1
 
       // Each Sheet row needs a unique id for scroll tracking. When there's no
       // dedicated `id` column, fall back to position-based ids — chapter
@@ -436,11 +181,7 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
         fileList: normalizeFileList(fileListValue),
         ...(chapter ? { chapter } : {}),
         ...(resolvedIdMap !== undefined ? { id_map: resolvedIdMap } : {}),
-        ...(explicitBaseId !== undefined
-          ? { base_id: explicitBaseId }
-          : inferredBaseId !== undefined
-          ? { base_id: inferredBaseId }
-          : {}),
+        base_id: resolvedBaseId,
         ...(mediaLinkRaw ? { mediaLink: mediaLinkRaw } : {}),
       }
     })
@@ -471,7 +212,7 @@ const fillForwardIdMap = (items: ContentItem[]): ContentItem[] => {
 
 const loadContentItemsFromSheet = async () => {
   if (!sheetId || !sheetsApiKey) {
-    return mergeFrame44Supplement(fallbackContentItems)
+    return fallbackLongreadItems
   }
 
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
@@ -485,14 +226,10 @@ const loadContentItemsFromSheet = async () => {
 
   const data = (await response.json()) as SheetValuesResponse
   const items = fillForwardIdMap(parseSheetRows(data.values ?? []))
-  const base = items.length > 0 ? items : fallbackContentItems
+  const base = items.length > 0 ? items : fallbackLongreadItems
 
-  return mergeFrame44Supplement(base)
+  return fillForwardIdMap(base)
 }
-
-const fileUrlByName = Object.fromEntries(
-  Object.entries(layerModules).map(([path, url]) => [path.split('/').pop() ?? path, url]),
-)
 
 const fileCache = new Map<string, Promise<GeoJsonFeatureCollection>>()
 
@@ -809,6 +546,7 @@ const addBaseComposition = async (
           minzoom: entry.minzoom,
           maxzoom: entry.maxzoom,
           attribution: entry.attribution,
+          ...(entry.scheme ? { scheme: entry.scheme } : {}),
         })
       }
       if (!map.getLayer(entry.id)) {
@@ -934,7 +672,7 @@ const ensureLayerOnMap = async (
   const geometryType = getGeometryType(data)
   const style = styleName ? VECTOR_STYLES[styleName] : undefined
   const masked = isMaskFile(fileName)
-  // Point-symbol layers (mountains) sit above all per-section overlays so they
+  // Point-symbol layers (mount) sit above all per-section overlays so they
   // remain clickable; everything else stacks beneath the overlay anchor.
   const beforeId = style?.type === 'point-symbol' ? undefined : overlayBeforeId(map)
 
@@ -1084,7 +822,7 @@ function MainMap() {
   const viewpointsOnRef = useRef(viewpointsOn)
   viewpointsOnRef.current = viewpointsOn
   const [viewpointModal, setViewpointModal] = useState<ViewpointInfo | null>(null)
-  const initialItems = useMemo(() => mergeFrame44Supplement(fallbackContentItems), [])
+  const initialItems = useMemo(() => fallbackLongreadItems, [])
   const [contentItems, setContentItems] = useState(initialItems)
   const [activeItemId, setActiveItemId] = useState(initialItems[0]?.id ?? '')
   const [error, setError] = useState<string | null>(null)
@@ -1145,24 +883,30 @@ function MainMap() {
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
-    const mountainsLayerId = symbolIdForFile('mountains.geojson')
+    const mountLayerId = symbolIdForFile('mount.geojson')
 
     const onMountainClick = (e: maplibregl.MapLayerMouseEvent) => {
       const feature = e.features?.[0]
       if (!feature || feature.geometry.type !== 'Point') return
       const props = feature.properties as {
-        'Имя'?: string
-        height?: number
+        name?: string
+        height_value?: number
+        hight?: string
         'photo id'?: string | null
       }
       const [lng, lat] = feature.geometry.coordinates as [number, number]
       setMountainModalPhotoId(null)
       setMountainFullscreen(false)
+      const heightFromValue =
+        typeof props.height_value === 'number' ? props.height_value : undefined
+      const heightFromText = props.hight
+        ? Number.parseFloat(props.hight.replace(/[^\d.,]/g, '').replace(',', '.'))
+        : NaN
       setMountainPopup({
         lng,
         lat,
-        name: props['Имя'] ?? '—',
-        height: typeof props.height === 'number' ? props.height : 0,
+        name: props.name ?? '—',
+        height: heightFromValue ?? (Number.isFinite(heightFromText) ? heightFromText : 0),
         photoId: props['photo id'] ?? null,
       })
     }
@@ -1175,22 +919,22 @@ function MainMap() {
     }
 
     const onMapClick = (e: maplibregl.MapMouseEvent) => {
-      if (!map.getLayer(mountainsLayerId)) return
-      const hits = map.queryRenderedFeatures(e.point, { layers: [mountainsLayerId] })
+      if (!map.getLayer(mountLayerId)) return
+      const hits = map.queryRenderedFeatures(e.point, { layers: [mountLayerId] })
       if (hits.length === 0) {
         closeMountainAll()
       }
     }
 
-    map.on('click', mountainsLayerId, onMountainClick)
-    map.on('mouseenter', mountainsLayerId, onMouseEnter)
-    map.on('mouseleave', mountainsLayerId, onMouseLeave)
+    map.on('click', mountLayerId, onMountainClick)
+    map.on('mouseenter', mountLayerId, onMouseEnter)
+    map.on('mouseleave', mountLayerId, onMouseLeave)
     map.on('click', onMapClick)
 
     return () => {
-      map.off('click', mountainsLayerId, onMountainClick)
-      map.off('mouseenter', mountainsLayerId, onMouseEnter)
-      map.off('mouseleave', mountainsLayerId, onMouseLeave)
+      map.off('click', mountLayerId, onMountainClick)
+      map.off('mouseenter', mountLayerId, onMouseEnter)
+      map.off('mouseleave', mountLayerId, onMouseLeave)
       map.off('click', onMapClick)
     }
   }, [mapReady])
@@ -1357,9 +1101,8 @@ function MainMap() {
         setActiveItemId(items[0]?.id ?? '')
       })
       .catch((loadError) => {
-        const supplemented = mergeFrame44Supplement(fallbackContentItems)
-        setContentItems(supplemented)
-        setActiveItemId(supplemented[0]?.id ?? '')
+        setContentItems(fallbackLongreadItems)
+        setActiveItemId(fallbackLongreadItems[0]?.id ?? '')
         setError(
           loadError instanceof Error
             ? loadError.message
@@ -1390,7 +1133,7 @@ function MainMap() {
         layers: [],
       },
       center: initialCenter,
-      zoom: 9,
+      zoom: 10,
       minZoom: 9,
       maxZoom: 14,
       attributionControl: false,
@@ -1841,7 +1584,7 @@ function MainMap() {
                 const insets =
                   item.id_map !== undefined ? SECTION_OVERLAYS[item.id_map]?.inset_images : undefined
                 const figureSrc = item.mediaLink
-                  ? longreadImageByMediaName[item.mediaLink]
+                  ? resolveLongreadFigure(item.mediaLink)
                   : undefined
                 return (
                   <div

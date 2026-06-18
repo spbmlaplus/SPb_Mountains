@@ -1,0 +1,40 @@
+﻿id _map;id_layer_click;name_layer;name_folder;name_layer_ru;type_layer;name_vector_style
+1;;;1;Смотровые точи;;
+2;1;mount;;Горные вершины;mount.geojson;mount
+2;2;mount_polygon;;Горные массивы;mount_polygon.gpkg;mount_polygon
+3;1;mask_stage;;Маска сцены;mask_stage.geojson;mask_stage
+4;1;mask_parter;;Маска партера;mask_parter.geojson;mask_parter
+5;1;mask_belletazh;;Маска беллетажа;mask_belletazh.geojson;mask_belletazh
+6;1;mask_balcon;;Маска балкона;mask_balcon.geojson;mask_balcon
+7;1;vomitoria;;Вомитории;vomitoria.geojson;vomitoria
+7;2;mask_amphitheater;;Маска амфитеатра;mask_amphitheater.geojson;mask_amphitheater
+8;1;landscape_450;;Ландшафт 450 тыс. лет назад;landscape_450.geojson;landscape_450
+9;1;landscape_12;;Ландшафт 12 тыс. лет назад;landscape_12.geojson;landscape_12
+10;1;landscape_7;;Ландшафт 7 тыс. лет назад;landscape_7.geojson;landscape_7
+11;1;landscape_2,5;;Ландшафт 2,5 тыс. лет назад;landscape_2,5.geojson;landscape_2,5
+12;1;Finns;;Расселение финнов;Finns.geojson;Finns
+12;2;historical_resettlement;;Историческое расселение;historical_resettlement.gpkg;historical_resettlement
+13;1;maki_selki;;Маки и сельки;maki_selki.geojson;maki_selki
+14;1;maki_selki;;Маки и сельки;maki_selki.geojson;maki_selki
+14;2;historical_zones_5;;;historical_zones_5.gpkg;historical_zones_5
+15;1;estate;;Усадьбы и дачи;estate.geojson;estate
+16;1;historical_zones_1;;;historical_zones_1.gpkg;historical_zones_1
+16;2;estate;;Усадьбы и дачи;estate.geojson;estate
+17;1;historical_zones_2;;;historical_zones_2.gpkg;historical_zones_2
+17;2;estate;;Усадьбы и дачи;estate.geojson;estate
+18;1;historical_zones_3;;;historical_zones_3.gpkg;historical_zones_3
+18;2;estate;;Усадьбы и дачи;estate.geojson;estate
+19;1;historical_zones_4;;;historical_zones_4.gpkg;historical_zones_4
+19;2;estate;;Усадьбы и дачи;estate.geojson;estate
+20;1;historical_zones_5;;;historical_zones_5.gpkg;historical_zones_5
+20;2;estate;;Усадьбы и дачи;estate.geojson;estate
+21;1;;21;Живопись в горах;;
+22;1;paragliding_clubs;;Клубы парапланеризма;paragliding_clubs.geojson;paragliding_clubs
+22;2;horse_riding_clubs;;Клубы верховой езды;horse_riding_clubs.geojson;horse_riding_clubs
+22;3;ski_resorts;;Горнолыжные курорты;ski_resorts.geojson;ski_resorts
+22;4;golf_clubs;;Гольф-клубы;golf_clubs.geojson;golf_clubs
+22;5;motocross;;Треки мотокросса;motocross.geojson;motocross
+22;6;walking routes;;Пешие маршруты;walking_routes.gpkg;walking routes
+23;1;;23_1;Смотровые точки;;
+23;2;;23_2;Обзор с точек;;
+23;3;;1;Фотографии со смотровых точек;;

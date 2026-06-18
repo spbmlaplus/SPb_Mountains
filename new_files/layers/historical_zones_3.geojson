@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "historical_zones_3",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 3, "historical_zones": 3 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ 3373139.608013677410781, 8317356.280299999751151 ], [ 3373139.608013677410781, 8347405.050707855261862 ], [ 3433192.253386322408915, 8347405.050707855261862 ], [ 3433192.253386322408915, 8317356.280299999751151 ], [ 3373139.608013677410781, 8317356.280299999751151 ] ] ] } }
+]
+}

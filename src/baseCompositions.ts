@@ -21,6 +21,7 @@ export type RasterEntry = {
   opacity?: number
   paint?: Record<string, unknown>
   attribution?: string
+  scheme?: 'xyz' | 'tms'
 }
 
 export type VectorEntry = {
@@ -36,6 +37,7 @@ type ManifestRasterEntry = {
   name: string
   source: string
   absolute_url?: boolean
+  scheme?: 'xyz' | 'tms'
   minzoom?: number
   maxzoom?: number
   opacity?: number
@@ -69,6 +71,7 @@ const compositionFromManifest = (manifest: Manifest): BaseComposition =>
         opacity: entry.opacity,
         paint: entry.paint,
         attribution: entry.attribution ?? '© Горные просторы',
+        scheme: entry.scheme,
       }
     }
     return {

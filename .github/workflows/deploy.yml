@@ -40,6 +40,7 @@ jobs:
       - name: Build
         env:
           VITE_TILE_BASE_URL: ${{ vars.TILE_BASE_URL || 'https://spbmlaplus.github.io/spb_mountains_tiles' }}
+          VITE_BASE_PATH: /SPb_Mountains/
         run: npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5

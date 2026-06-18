@@ -2,6 +2,189 @@
 
 Snapshot for whoever picks this up next (human or future agent session). Read top-to-bottom; entries are date-stamped — the most recent (top) supersedes earlier conflicting state.
 
+---
+
+## 2026-06-18 (raster fix) — `relief_water1` TMS scheme + initial zoom
+
+**Root cause:** Tile PNGs on `spb_mountains_tiles` use **TMS row indices** in filenames (`…/12/2393/2904.png`), but MapLibre requested **XYZ** rows (`y≈1190` for SPB at z12) → HTTP 404 → only Positron @40% + pink isolines visible (matches user screenshot).
+
+**Fix in app:**
+- `base-composition-1.json`: `"scheme": "tms"` on `relief_water1`
+- `baseCompositions.ts` + `MainMap.tsx`: pass `scheme` into `map.addSource`
+- `MainMap.tsx`: initial `zoom: 10` (pyramid starts at z10; z9 has no relief tiles)
+
+**Tile URL check:** `https://spbmlaplus.github.io/spb_mountains_tiles/relief_water1/12/2393/2904.png` → 200. XYZ path `…/12/2396/1190.png` → 404.
+
+**Build script:** `tile-build/scripts/build_relief_water1_tiles.py` now documents TMS filenames explicitly (removed erroneous XYZ flip).
+
+---
+
+## 2026-06-18 (follow-up session) — HANDOFF follow-ups: bundle size, labels, media
+
+**Status:** Addressed items 2, 4, 8 from the session report below. Build/lint not re-run on this machine (`npm`/`git` not in PATH — verify locally).
+
+### Done this session
+
+1. **Bundle size (item 2)** — Replaced `import.meta.glob('./assets/layers/*.geojson')` (pulled in ~80 legacy files + `isoline_2m` ~948 MB) with generated `src/layerUrls.ts` (33 referenced files only). Generator: `scripts/gen-layer-urls.py`. `copy-new-assets.py` now skips `isoline_2m.geojson`.
+2. **Historical zone labels (item 4)** — `gen-section-overlays.py` maps `historical_zones_1..5` to Russian titles from longread section names (Южные усадьбы, Дудергофские высоты, …). Re-run generator to refresh JSON.
+3. **Media Link images (item 8)** — `copy-new-assets.py` copies `new_files/photos/*` → `src/assets/longread/` (`Map 1735.png`, `Pietarin Valot.jpg`, `Mariental.jpg`, plus landscape/amphitheater variants). `resolveLongreadFigure()` resolves them via basename fallback.
+
+### Regeneration scripts (updated)
+
+```bash
+python scripts/copy-new-assets.py      # geojson + qml + longread photos (skips isoline_2m)
+python scripts/gen-section-overlays.py # section-overlays.json (23 sets)
+python scripts/gen-fallback-longread.py
+python scripts/gen-layer-urls.py       # layerUrls.ts (manifest-referenced geojson only)
+```
+
+### Still open
+
+1. **Deploy** — commit + `git push origin main` (git unavailable on prior agent machine).
+2. **Style fidelity** — design review of pragmatic QML ports (unchanged).
+3. **Google Sheets 403** — referrer allowlist in Google Cloud Console (unchanged).
+4. **`isoline_5m.geojson`** — still ~190 MB in dist (required for base map; consider re-simplifying like legacy 3.5 MB tol-25m version).
+5. **Legacy geojson on disk** — 80 files remain under `src/assets/layers/` but are no longer bundled; safe to archive in a follow-up.
+6. **`historical_zones_5` label** — same layer name used in id_map 14 (Токсовские) and 20 (север); toggle shows one shared label.
+
+---
+
+## 2026-06-18 (session report) — Migration to `new_files/` + `new_legend/` **DONE in working tree**
+
+**Status:** Implementation complete locally. `npm run build` ✅. **NOT committed/pushed** by this session (git was unavailable on the agent machine; verify with `git status` before continuing).
+
+### TL;DR for the next agent
+
+The app was migrated from the legacy 13-`id_map` / dual-base (#1/#3) system to the design team's new data drop in `new_files/` and `new_legend/`. The longread now has **5 chapters / 33 sections**, **23 overlay stacks**, a new basemap (`relief_water1`), and `mountains` → `mount`. Fallback content no longer uses hand-coded `fallbackContentItems` — it is generated from CSV.
+
+**View locally (last verified):** `npm run build && npx vite preview --port 4173` → [http://localhost:4173/SPb_Mountains/](http://localhost:4173/SPb_Mountains/)
+
+**Production (still OLD bundle until push):** [https://spbmlaplus.github.io/SPb_Mountains/](https://spbmlaplus.github.io/SPb_Mountains/)
+
+### What changed (file-level)
+
+| Area | Before | After |
+|---|---|---|
+| Overlay stacks | 13 `id_map` in `section-overlays.json` | **23** `id_map` (sets 1–23) |
+| Base composition | `relief_hillshade` + stage/water/positron_labels; swap #1↔#3 by chapter | **Single base #1:** Positron nolabels @40% → `relief_water1` tiles → isoline_5m / amphitheater_bound / sectors_level |
+| Longread fallback | Hand-coded `fallbackContentItems` + `mergeFrame44Supplement` | **`src/fallbackLongread.ts`** (33 items from `new_legend/Лонгрид_1.csv`) |
+| Mountains layer | `mountains.geojson`, popup field `Имя` | **`mount.geojson`**, popup fields `name`, `height_value`, `hight` |
+| `base_id` inference | Chapter 2 → base #3 via `isChapter2()` | **Removed** — all sections default to `base_id: 1` |
+| Nav chapters | 2 with content | **5 with content** (01–05) in `src/navData.ts` |
+| Types | `ContentItem` inline in MainMap | **`src/contentTypes.ts`** (shared with fallback generator) |
+
+### Source-of-truth folders (design drop — do not delete)
+
+```
+new_files/layers/*.geojson     → copied to src/assets/layers/
+new_files/1/Viewpoints.geojson → src/assets/layers/Viewpoints.geojson
+new_files/style/*.qml          → src/assets/styles/sections/ (+ 3 base qml to src/assets/styles/)
+new_legend/Порядок_слоев.csv   → src/assets/sections/section-overlays.json
+new_legend/Лонгрид_1.csv       → src/fallbackLongread.ts
+new_legend/Базовые_слои.csv    → src/assets/styles/base-composition-1.json
+```
+
+### Regeneration scripts (run from repo root)
+
+```bash
+python scripts/copy-new-assets.py      # sync geojson + qml from new_files/
+python scripts/gen-section-overlays.py # rebuild section-overlays.json (23 sets)
+python scripts/gen-fallback-longread.py # rebuild fallbackLongread.ts (33 sections)
+```
+
+### Key runtime files
+
+- `src/assets/styles/base-composition-1.json` — new basemap stack
+- `src/assets/sections/section-overlays.json` — 23 overlay sets + styles block
+- `src/fallbackLongread.ts` — generated longread (do not hand-edit; regenerate)
+- `src/MainMap.tsx` — uses `fallbackLongreadItems`; mount click handler on `mount.geojson`
+- `src/sectionOverlays.ts`, `src/layerStyles.ts`, `src/baseCompositions.ts` — unchanged API, new manifest data
+- `.github/workflows/deploy.yml` — **added** `VITE_BASE_PATH: /SPb_Mountains/` on build step
+
+### id_map quick reference (new `Порядок_слоев.csv`)
+
+| id_map | Layers (summary) | Notes |
+|---|---|---|
+| 1 | (empty) | Viewpoints — global toggle only |
+| 2 | mount + mount_polygon | Mountains chapter intro |
+| 3–6 | mask_stage / mask_parter / mask_belletazh / mask_balcon | Amphitheater tiers |
+| 7 | vomitoria + mask_amphitheater | |
+| 8–11 | landscape_450 / landscape_12 / landscape_7 / landscape_2,5 | Geological eras (one layer each, not stacked) |
+| 12 | Finns + historical_resettlement | |
+| 13–14 | maki_selki (+ historical_zones_5 on 14) | |
+| 15 | estate | |
+| 16–20 | historical_zones_1..5 + estate | |
+| 21 | (empty) | Painting section — text/media only |
+| 22 | paragliding, horse, ski, golf, motocross, walking_routes | Activities |
+| 23 | (empty) | Viewpoints + photos — global viewpoints layer |
+
+Mandatory vs optional: `id_layer_click = 1` → `mandatory: true` in JSON; all layers are still shown in `OverlayTogglePanel` and can be toggled off (2026-05-20 behaviour).
+
+### Basemap tiles
+
+- Template: `https://spbmlaplus.github.io/spb_mountains_tiles/relief_water1/{z}/{x}/{y}.png`
+- Resolved via `TILE_BASE_URL` in `src/baseCompositions.ts` (override with `VITE_TILE_BASE_URL`)
+- Example tile: `…/relief_water1/12/2393/2904.png`
+
+### Bugs fixed during this session
+
+1. **`MainMap.tsx` line 57 corruption** — a bad merge replaced `const layerModules = import.meta.glob(...)` with `import type … = import.meta.glob`. Fixed; build was failing with TS1005.
+2. **`section-overlays.json` set "2" key missing** — manual edit for set 1 broke JSON structure; fixed by re-running `gen-section-overlays.py` (generator now auto-adds empty sets 1, 21, 23).
+3. **Unused `isChapter2`** — removed after dropping chapter-based `base_id` inference (TS6133).
+
+### Verified in browser (local preview)
+
+- App loads at `http://localhost:4173/SPb_Mountains/`
+- Sidebar shows chapters 01–05 with content
+- Layer panel shows «Горные вершины», «Горные массивы», «Точки обзора»
+- Fallback longread text matches new CSV (Nazarov intro + amphitheater metaphor)
+
+### Open issues / follow-ups for next agent
+
+1. **Deploy** — push to `main` to update GitHub Pages. Until then production URL serves the **pre-migration** bundle (21 sections, old landscape stacks).
+2. **Bundle size** — `import.meta.glob('./assets/layers/*.geojson')` bundles **every** file in `src/assets/layers/`, including legacy unused layers and **`isoline_2m.geojson` (~948 MB)**. Build succeeds but JS bundle is ~1.5 MB + huge geojson assets. Consider: remove/archive unused legacy geojson, or narrow the glob to only layers referenced in manifests.
+3. **Style fidelity** — overlay styles in `section-overlays.json` were ported pragmatically from new QMLs (not a full renderer-v2 re-audit). Design review likely needed for `Finns` (complex RuleRenderer → simplified circle), `historical_zones_*` (outline-only), activity layers (placeholder purple fills).
+4. **Historical zone labels** — some `label` fields in JSON still use technical names (`historical_zones_1`); tune Russian labels from CSV `name_layer_ru` where blank.
+5. **Google Sheets** — still returns 403 on production; app correctly falls back to `fallbackLongreadItems`. Add `amphitheater.pashteto.com` / Pages referrer if live Sheet is needed.
+6. **`base-composition-3.json`** — still on disk but unused. Safe to leave; no runtime swap occurs.
+7. **`isoline_2m`** — present in `new_files` and copied to assets but **not referenced** by any `id_map`; do not add to overlays without checking file size.
+8. **Media Link images** — `resolveLongreadFigure()` maps known names + falls back to `assets/longread/{basename}`. New CSV media (`Map 1735.png`, `Pietarin Valot.jpg`, etc.) need files in `src/assets/longread/` or mapping entries in `longreadImageByMediaName`.
+
+### Commands checklist
+
+```bash
+cd SPb_Mountains          # repo root (NOT Map-View-Client/)
+npm ci
+npm run build             # must pass
+npm run lint              # verify; fix any new issues
+npm run dev               # http://localhost:5173/SPb_Mountains/
+
+# Deploy to GitHub Pages (after commit):
+git push origin main      # triggers .github/workflows/deploy.yml
+```
+
+### Do NOT
+
+- Edit `section-overlays.json` sets by hand without re-running the generator (easy to break JSON structure).
+- Re-introduce `isChapter2()` → `base_id: 3` without design sign-off (new spec uses single base).
+- Edit the plan file at `~/.cursor/plans/migrate_new_layer_system_*.plan.md` — it is reference only.
+
+---
+
+## 2026-06-18 — New longread layer system (`new_files/` + `new_legend/`) [superseded by session report above]
+
+Migrated to the design team's updated data drop:
+
+- **23 `id_map` overlay stacks** in `src/assets/sections/section-overlays.json` (was 13). Generator: `scripts/gen-section-overlays.py`.
+- **Single base composition**: Positron nolabels @40% + `relief_water1` tiles + `isoline_5m` / `amphitheater_bound` / `sectors_level`. Tiles at `https://spbmlaplus.github.io/spb_mountains_tiles/relief_water1/{z}/{x}/{y}.png`.
+- **5 longread chapters** with 33 sections — fallback from `new_legend/Лонгрид_1.csv` → `src/fallbackLongread.ts` (`scripts/gen-fallback-longread.py`).
+- **Layer assets** copied from `new_files/layers/`; QML from `new_files/style/`.
+- **`mountains` → `mount`**: point layer + popup reads `name`, `height_value`, `hight`.
+- **Removed** chapter-2 `base_id = 3` inference; all sections use base #1.
+- **Nav**: chapters 01–05 marked `hasContent` in `src/navData.ts`.
+
+Verify: `npm run build && npm run lint`, scroll all 33 longread cards, spot-check id_map 2 (mount), 12 (Finns), 22 (activities).
+
 ## 2026-06-09 (later) — QGIS style re-tune (renderer-v2 fix) + oracle-1 redeploy
 
 **Shipped to `https://amphitheater.pashteto.com/`. NOT yet committed to git** (working-tree change; commit/push when ready).
