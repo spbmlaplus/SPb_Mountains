@@ -6,7 +6,7 @@
       "kind": "raster",
       "name": "relief_hillshade",
       "source": "tiles/relief_hillshade/{z}/{x}/{y}.png",
-      "note": "Pre-baked pixel multiply of relief × hillshade. Replaces the two separate raster rows of the CSV (relief multiply + hillshade multiply). Deployed at https://pashteto.github.io/gavr-tiles/relief_hillshade/{z}/{x}/{y}.png and amphitheater.pashteto.com/tiles/relief_hillshade/{z}/{x}/{y}.png."
+      "note": "Pre-baked pixel multiply of relief × hillshade. Replaces the two separate raster rows of the CSV (relief multiply + hillshade multiply). Deployed at https://spbmlaplus.github.io/spb_mountains_tiles/relief_hillshade/{z}/{x}/{y}.png (migrated 2026-06-18 from the retired pashteto.github.io/gavr-tiles origin). The TILE_BASE_URL is overridable via VITE_TILE_BASE_URL."
     },
     {
       "kind": "vector",

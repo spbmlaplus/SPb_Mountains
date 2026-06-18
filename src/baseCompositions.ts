@@ -9,7 +9,8 @@ import baseComposition1Manifest from './assets/styles/base-composition-1.json'
 import baseComposition3Manifest from './assets/styles/base-composition-3.json'
 
 export const TILE_BASE_URL =
-  import.meta.env.VITE_TILE_BASE_URL ?? 'https://pashteto.github.io/gavr-tiles'
+  import.meta.env.VITE_TILE_BASE_URL ??
+  'https://spbmlaplus.github.io/spb_mountains_tiles'
 
 export type RasterEntry = {
   kind: 'raster'

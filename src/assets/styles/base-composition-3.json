@@ -11,7 +11,7 @@
         "raster-saturation": -0.85,
         "raster-brightness-max": 1.1
       },
-      "note": "Plain relief pyramid — not relief_hillshade. Already deployed at `https://pashteto.github.io/gavr-tiles/relief/{z}/{x}/{y}.png` and `amphitheater.pashteto.com/tiles/relief/{z}/{x}/{y}.png` (the Phase-2 pyramid; never retired). CSV's `multiply, opacity 40%` cannot be expressed directly (MapLibre lacks multiply blend on raster), so we approximate the near-grayscale look the chapter-2 Frames 46–49 call for by combining raster-opacity, heavy desaturation, and a slight brightness lift. Starting values; tune by eye against the frames. See plan/08-base-3-tuning.md."
+      "note": "Plain relief pyramid — not relief_hillshade. Migrated to the new origin 2026-06-18: https://spbmlaplus.github.io/spb_mountains_tiles/relief/{z}/{x}/{y}.png (resolved via TILE_BASE_URL). Used only by base composition #3, which is not yet activated (DEFAULT_BASE_ID=1, only #1/relief_hillshade renders). CSV's `multiply, opacity 40%` cannot be expressed directly (MapLibre lacks multiply blend on raster), so we approximate the near-grayscale look the chapter-2 Frames 46–49 call for by combining raster-opacity, heavy desaturation, and a slight brightness lift. Starting values; tune by eye against the frames. See plan/08-base-3-tuning.md."
     },
     {
       "kind": "vector",

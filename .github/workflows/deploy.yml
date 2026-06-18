@@ -39,7 +39,7 @@ jobs:
         run: npm ci
       - name: Build
         env:
-          VITE_TILE_BASE_URL: ${{ vars.TILE_BASE_URL || 'https://pashteto.github.io/gavr-tiles' }}
+          VITE_TILE_BASE_URL: ${{ vars.TILE_BASE_URL || 'https://spbmlaplus.github.io/spb_mountains_tiles' }}
         run: npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
