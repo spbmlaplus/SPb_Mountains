@@ -16,7 +16,7 @@ import MountainPopup, { type ObjectPopupInfo } from './MountainPopup'
 import MountainPhotoModal from './MountainPhotoModal'
 import MountainPhotoFullscreen from './MountainPhotoFullscreen'
 import { resolveObjectPhotoUrl } from './objectPhotos'
-import MobileLongreadControls from './MobileLongreadControls'
+import MobileLongreadSheet from './MobileLongreadSheet'
 import {
   buildClickConfigsForSection,
   folderVectorPointLayerFor,
@@ -126,21 +126,12 @@ const groupContentByChapter = (items: ContentItem[]) => {
 const scrollContentItemIntoView = (
   itemId: string,
   itemRefs: { current: Map<string, HTMLDivElement> },
-  listRef: { current: HTMLDivElement | null },
+  _listRef: { current: HTMLDivElement | null },
   behavior: ScrollBehavior = 'smooth',
 ) => {
   const element = itemRefs.current.get(itemId)
   if (!element) return
-
-  const isMobile = window.matchMedia('(max-width: 768px)').matches
-  if (isMobile) {
-    const rail = listRef.current?.querySelector<HTMLElement>('.longread-content-items')
-    if (!rail) return
-    const left = element.offsetLeft - rail.offsetLeft
-    rail.scrollTo({ left, behavior })
-  } else {
-    element.scrollIntoView({ behavior, block: 'start' })
-  }
+  element.scrollIntoView({ behavior, block: 'start' })
 }
 
 type SheetValuesResponse = {
@@ -1169,6 +1160,7 @@ function MainMap() {
     viewpointsOn,
     setViewpointsOn,
     registerExploreMountainsHandler,
+    requestMobileSheetExpanded,
   } = useMapInteraction()
 
   const viewpointsOnRef = useRef(viewpointsOn)
@@ -1216,9 +1208,12 @@ function MainMap() {
   }, [contentItems, publishContentItems])
 
   useEffect(() => {
-    registerScroller((id) => scrollContentItemIntoView(id, itemRefs, listRef))
+    registerScroller((id) => {
+      requestMobileSheetExpanded()
+      scrollContentItemIntoView(id, itemRefs, listRef)
+    })
     return () => registerScroller(null)
-  }, [registerScroller])
+  }, [registerScroller, requestMobileSheetExpanded])
 
   useEffect(() => {
     const map = mapRef.current
@@ -1840,40 +1835,10 @@ function MainMap() {
       return
     }
 
-    const getRail = (): HTMLElement | null =>
-      listElement.querySelector<HTMLElement>('.longread-content-items')
-
-    const mql = window.matchMedia('(max-width: 768px)')
-    let isMobile = mql.matches
     let frameId = 0
 
     const updateActiveItem = () => {
       if (contentItems.length === 0) {
-        return
-      }
-
-      if (isMobile) {
-        const rail = getRail()
-        if (!rail) return
-        const left = rail.scrollLeft
-        const maxLeft = rail.scrollWidth - rail.clientWidth
-        if (maxLeft > 0 && left >= maxLeft - 2) {
-          const lastItemId = contentItems[contentItems.length - 1]?.id ?? ''
-          setActiveItemId((currentId) => (currentId === lastItemId ? currentId : lastItemId))
-          return
-        }
-
-        let nextItemId = contentItems[0]?.id ?? ''
-        let bestDistance = Number.POSITIVE_INFINITY
-        for (const [itemId, element] of itemRefs.current.entries()) {
-          const itemLeft = element.offsetLeft - rail.offsetLeft
-          const distance = Math.abs(itemLeft - left)
-          if (distance < bestDistance) {
-            bestDistance = distance
-            nextItemId = itemId
-          }
-        }
-        setActiveItemId((currentId) => (currentId === nextItemId ? currentId : nextItemId))
         return
       }
 
@@ -1920,44 +1885,25 @@ function MainMap() {
     }
 
     const handleResize = () => {
-      if (isMobile) {
-        const rail = getRail()
-        const activeId = activeIdRef.current
-        if (rail && activeId) {
-          const el = itemRefs.current.get(activeId)
-          if (el) {
-            rail.scrollTo({ left: el.offsetLeft - rail.offsetLeft, behavior: 'auto' })
-          }
+      const activeId = activeIdRef.current
+      if (activeId) {
+        const el = itemRefs.current.get(activeId)
+        if (el) {
+          el.scrollIntoView({ behavior: 'auto', block: 'start' })
         }
       }
       handleScroll()
     }
 
-    const attach = () => {
-      const target: HTMLElement | null = isMobile ? getRail() : listElement
-      if (!target) return () => undefined
-      target.addEventListener('scroll', handleScroll, { passive: true })
-      return () => target.removeEventListener('scroll', handleScroll)
-    }
-
-    let detach = attach()
+    listElement.addEventListener('scroll', handleScroll, { passive: true })
     window.addEventListener('resize', handleResize)
-
-    const onMqlChange = (e: MediaQueryListEvent) => {
-      isMobile = e.matches
-      detach()
-      detach = attach()
-      handleScroll()
-    }
-    mql.addEventListener('change', onMqlChange)
 
     updateActiveItem()
 
     return () => {
       cancelAnimationFrame(frameId)
-      detach()
+      listElement.removeEventListener('scroll', handleScroll)
       window.removeEventListener('resize', handleResize)
-      mql.removeEventListener('change', onMqlChange)
     }
   }, [contentItems])
 
@@ -2259,9 +2205,9 @@ function MainMap() {
         />
       ) : null}
       <div className="longread-wrapper">
-        <MobileLongreadControls />
-        <div ref={listRef} className="longread">
-          <div className="longread-content-items">
+        <MobileLongreadSheet>
+          <div ref={listRef} className="longread">
+            <div className="longread-content-items">
             {(() => {
               const { chapterNumber, factNumberByItemId } = buildLongreadMeta(contentItems)
               // Global media counter: the very first photo keeps its floated
@@ -2349,6 +2295,7 @@ function MainMap() {
             })()}
           </div>
         </div>
+        </MobileLongreadSheet>
       </div>
     </section>
   )

@@ -31,6 +31,8 @@ type MapInteractionContextValue = {
   setViewpointsOn: (value: boolean | ((prev: boolean) => boolean)) => void
   exploreMountains: () => void
   registerExploreMountainsHandler: (fn: (() => void) | null) => void
+  requestMobileSheetExpanded: () => void
+  registerMobileSheetExpander: (fn: (() => void) | null) => void
 }
 
 const MapInteractionContext = createContext<MapInteractionContextValue | null>(null)
@@ -43,6 +45,7 @@ export function MapInteractionProvider({ children }: { children: ReactNode }) {
   const [viewpointsOn, setViewpointsOn] = useState(true)
   const scrollerRef = useRef<Scroller | null>(null)
   const exploreMountainsRef = useRef<(() => void) | null>(null)
+  const mobileSheetExpanderRef = useRef<(() => void) | null>(null)
 
   const scrollToItemId = useCallback<Scroller>((id) => {
     scrollerRef.current?.(id)
@@ -58,6 +61,14 @@ export function MapInteractionProvider({ children }: { children: ReactNode }) {
 
   const exploreMountains = useCallback(() => {
     exploreMountainsRef.current?.()
+  }, [])
+
+  const registerMobileSheetExpander = useCallback((fn: (() => void) | null) => {
+    mobileSheetExpanderRef.current = fn
+  }, [])
+
+  const requestMobileSheetExpanded = useCallback(() => {
+    mobileSheetExpanderRef.current?.()
   }, [])
 
   const publishActiveItemId = useCallback((id: string) => setActiveItemId(id), [])
@@ -82,6 +93,8 @@ export function MapInteractionProvider({ children }: { children: ReactNode }) {
       setViewpointsOn,
       exploreMountains,
       registerExploreMountainsHandler,
+      requestMobileSheetExpanded,
+      registerMobileSheetExpander,
     }),
     [
       activeItemId,
@@ -95,6 +108,8 @@ export function MapInteractionProvider({ children }: { children: ReactNode }) {
       viewpointsOn,
       exploreMountains,
       registerExploreMountainsHandler,
+      requestMobileSheetExpanded,
+      registerMobileSheetExpander,
     ],
   )
 
