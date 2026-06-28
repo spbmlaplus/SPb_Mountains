@@ -38,7 +38,7 @@ import {
   type TargetOpacityResolver,
 } from './layerFade'
 import { fallbackLongreadItems } from './fallbackLongread'
-import { isEraCaption, type BaseId, type ContentItem } from './contentTypes'
+import { isEraCaption, type BaseId, type ContentItem, type LongreadMedia, type MediaSide } from './contentTypes'
 import { LAYER_URL_BY_FILE } from './layerUrls'
 
 export type { ContentItem } from './contentTypes'
@@ -160,6 +160,36 @@ const belvederAllowed = (subtitle: string, chapter: string) => {
   return sub.includes('николай') && sub.includes('бельведер') && ch.includes('наблюдател')
 }
 
+const buildMediaFromLink = (
+  link: string,
+  opts: { subtitle?: string; chapter?: string; side?: MediaSide; caption?: string },
+): LongreadMedia | undefined => {
+  const trimmed = link.trim()
+  if (!trimmed) return undefined
+  if (trimmed.includes('Belveder') && !belvederAllowed(opts.subtitle ?? '', opts.chapter ?? '')) {
+    return undefined
+  }
+  const side: MediaSide = trimmed.includes('Belveder')
+    ? 'full'
+    : opts.side ?? 'left'
+  return {
+    link: trimmed,
+    side,
+    ...(opts.caption ? { caption: opts.caption } : {}),
+  }
+}
+
+/** Sheet rows only carry `mediaLink`; UI reads `media`. Fallback already has `media`. */
+const normalizeItemMedia = (item: ContentItem): ContentItem => {
+  if (item.media) return item
+  if (!item.mediaLink) return item
+  const media = buildMediaFromLink(item.mediaLink, {
+    subtitle: item.subtitle ?? item.title,
+    chapter: item.chapter,
+  })
+  return media ? { ...item, media } : item
+}
+
 const parseSheetRows = (rows: string[][]): ContentItem[] => {
   if (rows.length === 0) {
     return []
@@ -170,6 +200,7 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
 
   const idIndex = headerMap.get('id')
   const chapterIndex = headerMap.get('chapter')
+  const subtitleIndex = headerMap.get('subtitle')
   const titleIndex =
     headerMap.get('title') ??
     headerMap.get('subtitle') ??
@@ -182,11 +213,16 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
   const baseIdIndex = headerMap.get('base_id') ?? headerMap.get('baseid')
   const mediaLinkIndex =
     headerMap.get('media link') ?? headerMap.get('medialink') ?? headerMap.get('media_link')
+  const mediaTypeIndex =
+    headerMap.get('media link_type') ?? headerMap.get('media link type')
+  const mediaCaptionIndex = headerMap.get('name_media link')
 
   return dataRows
     .filter((row) => row.some((cell) => cell?.trim()))
     .map((row, index) => {
       const title = (titleIndex !== undefined ? row[titleIndex] : row[1])?.trim() ?? ''
+      const subtitle =
+        (subtitleIndex !== undefined ? row[subtitleIndex] : row[1])?.trim() ?? ''
       const description =
         (descriptionIndex !== undefined ? row[descriptionIndex] : row[2])?.trim() ?? ''
       const chapter = (chapterIndex !== undefined ? row[chapterIndex] : '')?.trim() ?? ''
@@ -197,7 +233,18 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
       const baseIdRaw = baseIdIndex !== undefined ? row[baseIdIndex]?.trim() : ''
       let mediaLinkRaw =
         mediaLinkIndex !== undefined ? row[mediaLinkIndex]?.trim() : ''
-      if (mediaLinkRaw.includes('Belveder') && !belvederAllowed(title, chapter)) {
+      const mediaTypeRaw =
+        mediaTypeIndex !== undefined ? row[mediaTypeIndex]?.trim().toLowerCase() : ''
+      const mediaCaptionRaw =
+        mediaCaptionIndex !== undefined ? row[mediaCaptionIndex]?.trim() : ''
+      const mediaSide: MediaSide | undefined = mediaTypeRaw.startsWith('right')
+        ? 'right'
+        : mediaTypeRaw.startsWith('left')
+          ? 'left'
+          : mediaTypeRaw.startsWith('full')
+            ? 'full'
+            : undefined
+      if (mediaLinkRaw.includes('Belveder') && !belvederAllowed(subtitle || title, chapter)) {
         mediaLinkRaw = ''
       }
       const idMapParsed = idMapRaw ? Number(idMapRaw) : NaN
@@ -216,6 +263,15 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
         ? sanitizeItemId(explicitId, index)
         : `sheet-item-${index}`
 
+      const media = mediaLinkRaw
+        ? buildMediaFromLink(mediaLinkRaw, {
+            subtitle: subtitle || title,
+            chapter,
+            side: mediaSide,
+            caption: mediaCaptionRaw || undefined,
+          })
+        : undefined
+
       return {
         id,
         title,
@@ -223,34 +279,39 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
         paragraphs: description ? [description] : [],
         fileList: normalizeFileList(fileListValue),
         ...(chapter ? { chapter } : {}),
+        ...(subtitle ? { subtitle } : {}),
         ...(resolvedIdMap !== undefined ? { id_map: resolvedIdMap } : {}),
         base_id: resolvedBaseId,
         ...(mediaLinkRaw ? { mediaLink: mediaLinkRaw } : {}),
+        ...(media ? { media } : {}),
       }
     })
+    .map(normalizeItemMedia)
 }
 
 const fillForwardIdMap = (items: ContentItem[]): ContentItem[] => {
   let lastIdMap: number | undefined
   let lastBaseId: BaseId | undefined
   let lastChapter: string | undefined
-  return items.map((item) => {
-    const carriedChapter = item.chapter ?? lastChapter
-    if (item.chapter) {
-      lastChapter = item.chapter
-    }
-    if (item.id_map !== undefined) {
-      lastIdMap = item.id_map
-      lastBaseId = item.base_id
-      return carriedChapter && !item.chapter ? { ...item, chapter: carriedChapter } : item
-    }
-    return {
-      ...item,
-      ...(carriedChapter ? { chapter: carriedChapter } : {}),
-      ...(lastIdMap !== undefined ? { id_map: lastIdMap } : {}),
-      ...(lastBaseId !== undefined ? { base_id: lastBaseId } : {}),
-    }
-  })
+  return items
+    .map((item) => {
+      const carriedChapter = item.chapter ?? lastChapter
+      if (item.chapter) {
+        lastChapter = item.chapter
+      }
+      if (item.id_map !== undefined) {
+        lastIdMap = item.id_map
+        lastBaseId = item.base_id
+        return carriedChapter && !item.chapter ? { ...item, chapter: carriedChapter } : item
+      }
+      return {
+        ...item,
+        ...(carriedChapter ? { chapter: carriedChapter } : {}),
+        ...(lastIdMap !== undefined ? { id_map: lastIdMap } : {}),
+        ...(lastBaseId !== undefined ? { base_id: lastBaseId } : {}),
+      }
+    })
+    .map(normalizeItemMedia)
 }
 
 const loadContentItemsFromSheet = async () => {
