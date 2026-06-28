@@ -96,6 +96,14 @@
     cursor: default;
 }
 
+.sidebar__vlabels li[role='button'] {
+    cursor: pointer;
+}
+
+.sidebar__vlabels li[role='button']:hover {
+    color: #f3c43d;
+}
+
 .sidebar__mla {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
@@ -286,6 +294,16 @@
     cursor: default;
 }
 
+.sidebar__footer-link--button {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
 @media (max-width: 600px) {
     .sidebar--expanded {
         width: min(82vw, 320px);
@@ -298,7 +316,22 @@
     }
 
     .sector-detail-panel {
-        display: none;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        transform: none;
+        max-width: 100%;
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+        z-index: 40;
+    }
+
+    .mobile-menu__sector--active .mobile-menu__sector-num,
+    .mobile-menu__sector--active .mobile-menu__sector-title {
+        color: rgb(225, 89, 137);
     }
 }
 
@@ -463,6 +496,16 @@
     color: #c0c4c8;
     font-size: 0.85rem;
     cursor: default;
+}
+
+.mobile-menu__footer-link--button {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
 }
 
 /* Desktop overrides — appended LAST so they win the cascade against the

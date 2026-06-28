@@ -1,0 +1,20 @@
+{
+"type": "FeatureCollection",
+"name": "7",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "name": "Вомиторий Сестра" }, "geometry": { "type": "Point", "coordinates": [ 3328146.980620914138854, 8443369.932379022240639 ] } },
+{ "type": "Feature", "properties": { "fid": 4, "name": "Вомиторий Стрелка" }, "geometry": { "type": "Point", "coordinates": [ 3332367.94853477133438, 8351098.124551619403064 ] } },
+{ "type": "Feature", "properties": { "fid": 5, "name": "Вомиторий Дудергофка" }, "geometry": { "type": "Point", "coordinates": [ 3356005.751837715972215, 8351105.069450519979 ] } },
+{ "type": "Feature", "properties": { "fid": 7, "name": "Вомиторий Ижора" }, "geometry": { "type": "Point", "coordinates": [ 3406029.87006472889334, 8336831.02111326251179 ] } },
+{ "type": "Feature", "properties": { "fid": 8, "name": "Вомиторий Тосна" }, "geometry": { "type": "Point", "coordinates": [ 3429062.006281495094299, 8324473.17783251684159 ] } },
+{ "type": "Feature", "properties": { "fid": 9, "name": "Вомиторий Шингарка" }, "geometry": { "type": "Point", "coordinates": [ 3323166.591124908998609, 8353523.419995937496424 ] } },
+{ "type": "Feature", "properties": { "fid": 10, "name": "Вомиторий Караста" }, "geometry": { "type": "Point", "coordinates": [ 3308733.996886596549302, 8355137.001351553946733 ] } },
+{ "type": "Feature", "properties": { "fid": 11, "name": "Вомиторий Лапка" }, "geometry": { "type": "Point", "coordinates": [ 3393023.579069994855672, 8391143.586194541305304 ] } },
+{ "type": "Feature", "properties": { "fid": 12, "name": "Вомиторий Славянка" }, "geometry": { "type": "Point", "coordinates": [ 3392785.255167592316866, 8337996.8176354970783 ] } },
+{ "type": "Feature", "properties": { "fid": 13, "name": "Вомиторий Капральев ручей" }, "geometry": { "type": "Point", "coordinates": [ 3388582.031578143592924, 8404470.28793921135366 ] } },
+{ "type": "Feature", "properties": { "fid": 17, "name": "Вомиторий Черная" }, "geometry": { "type": "Point", "coordinates": [ 3359332.779728626366705, 8432164.773090740665793 ] } },
+{ "type": "Feature", "properties": { "fid": 19, "name": "Вомиторий Нева" }, "geometry": { "type": "Point", "coordinates": [ 3401237.167937078047544, 8363354.047463174909353 ] } },
+{ "type": "Feature", "properties": { "fid": 21, "name": "Вомиторий Охта" }, "geometry": { "type": "Point", "coordinates": [ 3387718.236859418917447, 8422624.400390036404133 ] } }
+]
+}

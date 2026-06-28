@@ -1,0 +1,16 @@
+{
+"type": "FeatureCollection",
+"name": "23",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Дудергофские высоты" }, "geometry": { "type": "Point", "coordinates": [ 3355620.12603236688301, 8332188.566208496689796 ] } },
+{ "type": "Feature", "properties": { "name": "Пулковские высоты" }, "geometry": { "type": "Point", "coordinates": [ 3379769.537760571110994, 8343363.609675512649119 ] } },
+{ "type": "Feature", "properties": { "name": "Тосненские высоты " }, "geometry": { "type": "Point", "coordinates": [ 3427102.660306498873979, 8326577.768158426508307 ] } },
+{ "type": "Feature", "properties": { "name": "Бабигонские высоты" }, "geometry": { "type": "Point", "coordinates": [ 3315809.886191015131772, 8374149.948742086067796 ] } },
+{ "type": "Feature", "properties": { "name": "Нагорный бульвар Корниш" }, "geometry": { "type": "Point", "coordinates": [ 3291976.281324550975114, 8444360.573439735919237 ] } },
+{ "type": "Feature", "properties": { "name": "Юкковские гряды" }, "geometry": { "type": "Point", "coordinates": [ 3377385.59460636973381, 8422083.755235929042101 ] } },
+{ "type": "Feature", "properties": { "name": "Фёдоровский холм" }, "geometry": { "type": "Point", "coordinates": [ 3389721.797937098890543, 8329662.835857111029327 ] } },
+{ "type": "Feature", "properties": { "name": "Колтушские высоты" }, "geometry": { "type": "Point", "coordinates": [ 3413095.885377435013652, 8393905.054912688210607 ] } },
+{ "type": "Feature", "properties": { "name": "Аннинские высоты " }, "geometry": { "type": "Point", "coordinates": [ 3344082.25386523688212, 8345340.242323201149702 ] } }
+]
+}

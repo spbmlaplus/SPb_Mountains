@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "6",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": null, "name": "Балкон" }, "geometry": { "type": "Point", "coordinates": [ 3374238.882096370216459, 8436799.934647656977177 ] } }
+]
+}

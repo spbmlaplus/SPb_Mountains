@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "finns_5_plus_count_10_100",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3389501.051386855076998, 8416259.080407544970512 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3428629.429386626463383, 8354534.149009251967072 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3388163.837135650683194, 8435704.467482727020979 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3387810.564731617923826, 8449132.031287852674723 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3382949.743506385013461, 8453263.623463915660977 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3398038.221059435047209, 8450593.517133891582489 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3352503.205989428795874, 8297148.474656298756599 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3370817.03220482589677, 8305989.940501629374921 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3532289.616011715959758, 8403401.657545367255807 ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ 3331721.259683908428997, 8353216.998302900232375 ] } }
+]
+}

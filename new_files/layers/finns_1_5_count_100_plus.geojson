@@ -1,0 +1,25 @@
+{
+"type": "FeatureCollection",
+"name": "finns_1_5_count_100_plus",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Всеволожск" }, "geometry": { "type": "Point", "coordinates": [ 3411459.86734904255718, 8403975.616981349885464 ] } },
+{ "type": "Feature", "properties": { "name": "Мурино" }, "geometry": { "type": "Point", "coordinates": [ 3390491.260521359741688, 8409740.814805774018168 ] } },
+{ "type": "Feature", "properties": { "name": "Кудрово" }, "geometry": { "type": "Point", "coordinates": [ 3396575.97275617159903, 8379209.991733524017036 ] } },
+{ "type": "Feature", "properties": { "name": "Янино-1" }, "geometry": { "type": "Point", "coordinates": [ 3402056.85467707272619, 8387590.487090036273003 ] } },
+{ "type": "Feature", "properties": { "name": "имени Морозова" }, "geometry": { "type": "Point", "coordinates": [ 3454801.899582370650023, 8394068.322132742032409 ] } },
+{ "type": "Feature", "properties": { "name": "Бугры" }, "geometry": { "type": "Point", "coordinates": [ 3384087.629077375400811, 8415342.727224681526423 ] } },
+{ "type": "Feature", "properties": { "name": "Старая" }, "geometry": { "type": "Point", "coordinates": [ 3409959.625703570898622, 8384069.1148542156443 ] } },
+{ "type": "Feature", "properties": { "name": "Рощино" }, "geometry": { "type": "Point", "coordinates": [ 3298263.463149299845099, 8453547.301641274243593 ] } },
+{ "type": "Feature", "properties": { "name": "Гатчина" }, "geometry": { "type": "Point", "coordinates": [ 3353847.355444910004735, 8303550.197810588404536 ] } },
+{ "type": "Feature", "properties": { "name": "Сусанино" }, "geometry": { "type": "Point", "coordinates": [ 3380653.500710045918822, 8287528.961305610835552 ] } },
+{ "type": "Feature", "properties": { "name": "Кировск" }, "geometry": { "type": "Point", "coordinates": [ 3448846.718707046937197, 8372012.34581352211535 ] } },
+{ "type": "Feature", "properties": { "name": "Шлиссельбург" }, "geometry": { "type": "Point", "coordinates": [ 3454609.316863298416138, 8387349.125694211572409 ] } },
+{ "type": "Feature", "properties": { "name": "Новоселье" }, "geometry": { "type": "Point", "coordinates": [ 3348217.995587188750505, 8357346.68639372009784 ] } },
+{ "type": "Feature", "properties": { "name": "Новогорелово" }, "geometry": { "type": "Point", "coordinates": [ 3358089.028794300276786, 8353237.573518145829439 ] } },
+{ "type": "Feature", "properties": { "name": "Тосно" }, "geometry": { "type": "Point", "coordinates": [ 3437296.976446823216975, 8298179.059228086844087 ] } },
+{ "type": "Feature", "properties": { "name": "Никольское" }, "geometry": { "type": "Point", "coordinates": [ 3427238.414425520692021, 8334176.737295073457062 ] } },
+{ "type": "Feature", "properties": { "name": "Фёдоровское" }, "geometry": { "type": "Point", "coordinates": [ 3398736.361245945561677, 8324888.053366824053228 ] } },
+{ "type": "Feature", "properties": { "name": "Сосновый Бор" }, "geometry": { "type": "Point", "coordinates": [ 3238529.891931490972638, 8378445.218371272087097 ] } }
+]
+}

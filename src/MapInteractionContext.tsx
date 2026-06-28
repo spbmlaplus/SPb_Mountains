@@ -27,6 +27,10 @@ type MapInteractionContextValue = {
   setExploreSector: (id: number | null) => void
   mobileMenuOpen: boolean
   setMobileMenuOpen: (open: boolean) => void
+  viewpointsOn: boolean
+  setViewpointsOn: (value: boolean | ((prev: boolean) => boolean)) => void
+  exploreMountains: () => void
+  registerExploreMountainsHandler: (fn: (() => void) | null) => void
 }
 
 const MapInteractionContext = createContext<MapInteractionContextValue | null>(null)
@@ -36,7 +40,9 @@ export function MapInteractionProvider({ children }: { children: ReactNode }) {
   const [contentItems, setContentItems] = useState<SidebarContentItem[]>([])
   const [exploreSector, setExploreSector] = useState<number | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [viewpointsOn, setViewpointsOn] = useState(true)
   const scrollerRef = useRef<Scroller | null>(null)
+  const exploreMountainsRef = useRef<(() => void) | null>(null)
 
   const scrollToItemId = useCallback<Scroller>((id) => {
     scrollerRef.current?.(id)
@@ -44,6 +50,14 @@ export function MapInteractionProvider({ children }: { children: ReactNode }) {
 
   const registerScroller = useCallback((fn: Scroller | null) => {
     scrollerRef.current = fn
+  }, [])
+
+  const registerExploreMountainsHandler = useCallback((fn: (() => void) | null) => {
+    exploreMountainsRef.current = fn
+  }, [])
+
+  const exploreMountains = useCallback(() => {
+    exploreMountainsRef.current?.()
   }, [])
 
   const publishActiveItemId = useCallback((id: string) => setActiveItemId(id), [])
@@ -64,6 +78,10 @@ export function MapInteractionProvider({ children }: { children: ReactNode }) {
       setExploreSector,
       mobileMenuOpen,
       setMobileMenuOpen,
+      viewpointsOn,
+      setViewpointsOn,
+      exploreMountains,
+      registerExploreMountainsHandler,
     }),
     [
       activeItemId,
@@ -74,6 +92,9 @@ export function MapInteractionProvider({ children }: { children: ReactNode }) {
       registerScroller,
       exploreSector,
       mobileMenuOpen,
+      viewpointsOn,
+      exploreMountains,
+      registerExploreMountainsHandler,
     ],
   )
 

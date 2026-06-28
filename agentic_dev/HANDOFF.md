@@ -4,6 +4,39 @@ Snapshot for whoever picks this up next (human or future agent session). Read to
 
 ---
 
+## 2026-06-28 — **NEW LEGEND MIGRATION (Phases 0–2)** — START HERE for current work
+
+**Project:** перенос сайта «Горный Петербург» на новую легенду (`new_legend/` CSV + `new_files/`).
+
+| Doc | Purpose |
+|-----|---------|
+| **`agentic_dev/new-legend-TZ.md`** | Формальное ТЗ по фазам 0–2, критерии приёмки |
+| **`agentic_dev/new-legend-continuation.md`** | Handoff для агента: статус, пайплайн, Фаза 2 по шагам, дыры в данных |
+| `agentic_dev/new-legend-rebuild-plan.md` | Общий план миграции |
+
+**Status:** Фаза 0 ✅ | Фаза 1 ✅ | Фаза 2 ❌ | Build green | **Nothing committed**
+
+**Root:** `C:\Work\SPb_Mountains\SPb_Mountains` — shell needs `required_permissions: ["all"]` on Windows.
+
+**Regenerate (after CSV/asset changes):**
+```powershell
+python scripts/copy-new-assets.py
+python scripts/qml_to_style.py          # if QML changed
+python scripts/gen-fallback-longread.py
+python scripts/gen-layers.py
+python scripts/gen-base-map.py
+python scripts/gen-layer-urls.py
+npm run build
+```
+
+**Dev:** `npm run dev -- --host 127.0.0.1` → `http://127.0.0.1:5173/`
+
+**Next agent task:** Фаза 2 — Click_trigger popups, inscription labels, name_folder photos, point→polygon (id_map 23), legacy cleanup. See `new-legend-continuation.md` §Фаза 2.
+
+**Do not commit/push** unless user asks.
+
+---
+
 ## 2026-06-18 (raster fix) — `relief_water1` TMS scheme + initial zoom
 
 **Root cause:** Tile PNGs on `spb_mountains_tiles` use **TMS row indices** in filenames (`…/12/2393/2904.png`), but MapLibre requested **XYZ** rows (`y≈1190` for SPB at z12) → HTTP 404 → only Positron @40% + pink isolines visible (matches user screenshot).

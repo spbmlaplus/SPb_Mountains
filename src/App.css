@@ -161,82 +161,187 @@
   width: 650px;
   height: 100vh;
   overflow-y: auto;
-  padding: 1.5rem;
-  font-family: 'Montserrat', serif;
-  font-size: 1.3rem;
+  padding: 0 2rem 4rem;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.95rem;
   font-weight: 400;
-  line-height: 1.3;
+  line-height: 1.5;
+  color: #2a2a2a;
 }
 
-.longread-header {
-  width: 100%;
-  font-family: 'Montserrat', serif;
-  font-size: 3rem;
+/* Pinned chapter heading with leading number ("01"). Each chapter group is a
+   scroll segment: the header stays pinned until the next group pushes it up
+   (see reference 3_пример). */
+.longread-chapter-group {
+  position: relative;
+}
+
+.longread-chapter {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  background: #fff;
+  padding: 0.75rem 0 0.45rem;
+  border-bottom: 3px solid #111;
   font-weight: 700;
-  line-height: 100%;
-  padding-bottom: 1rem;
-  border-bottom: 3px solid #000;
+  font-size: 1.9rem;
+  line-height: 1.05;
+  color: #111;
 }
 
-.longread-content {
-  margin-top: 1.5rem;
+.longread-chapter__num {
+  font-variant-numeric: tabular-nums;
 }
 
-.longread-content > .longread-content-title {
-  font-family: 'Montserrat', serif;
-  font-size: 1.7rem;
+/* Subtitles scroll with the body text (only chapters stay pinned). */
+.longread-subtitle {
+  position: static;
+  background: #fff;
+  padding: 0.5rem 0 0.25rem;
+  font-style: italic;
   font-weight: 700;
-  padding-block: 0.75rem;
+  font-size: 1.15rem;
+  color: #111;
 }
 
-.longread-content-item {
-  padding-block: 2rem;
-  border-bottom: 3px solid #000;
-  opacity: 0.45;
-  line-height: 1.45;
+.longread-block {
   transition:
-    opacity 180ms ease,
-    transform 180ms ease;
+    opacity 220ms ease,
+    transform 220ms ease;
 }
 
-.longread-content-item.is-active {
+.longread-content-item:not(:has(.longread-item.is-active)) {
+  opacity: 0.55;
+  transform: translateX(-14px);
+}
+
+.longread-content-item:has(.longread-item.is-active) {
   opacity: 1;
-  transform: translateX(-10px);
+  transform: translateX(0);
 }
 
-.longread-content-item.is-active b:first-child {
-  border-bottom: 2px solid rgb(225, 89, 137);
-  padding-bottom: 2px;
+.longread-item {
+  padding: 0.2rem 0;
 }
 
-.longread-content-item ul {
-  margin: 1rem 0 0;
-  padding-left: 1.5rem;
-  list-style: disc;
-}
-
-.longread-content-item li + li {
-  margin-top: 0.75rem;
-}
-
-.longread-inset {
+/* clear floated media at the end of each row */
+.longread-item::after {
+  content: '';
   display: block;
-  width: 220px;
-  max-width: 100%;
-  height: auto;
-  margin: 1rem auto 0;
-  border-radius: 4px;
+  clear: both;
 }
 
-.longread-inset + .longread-inset {
-  margin-top: 0.75rem;
+.longread-item:not(.is-active) .longread-paragraph,
+.longread-item:not(.is-active) .longread-era,
+.longread-item:not(.is-active) .longread-fact {
+  opacity: 1;
 }
 
-.longread-figure {
+.longread-item.is-active .longread-paragraph,
+.longread-item.is-active .longread-era,
+.longread-item.is-active .longread-fact {
+  opacity: 1;
+}
+
+.longread-divider {
+  border: 0;
+  border-top: 1px solid #c9c9c9;
+  width: 60%;
+  margin: 0.5rem 0;
+}
+
+.longread-paragraph {
+  margin: 0 0 0.45rem;
+  white-space: pre-line;
+}
+
+/* Geological era captions — between body text and chapter subtitles. */
+.longread-era {
+  margin: 0 0 0.45rem;
+  white-space: pre-line;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-style: italic;
+  color: #111;
+}
+
+/* CSV/xlsx bold runs — bold only (no underline). */
+.longread-paragraph b,
+.longread-paragraph strong {
+  font-weight: 700;
+}
+
+.longread-media {
+  margin: 0 0 0.4rem;
+}
+
+.longread-media img {
   display: block;
   width: 100%;
   height: auto;
-  margin: 0.5rem 0 0;
+  border-radius: 2px;
+}
+
+.longread-media figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #6f6f6f;
+}
+
+.longread-media--left {
+  float: left;
+  width: 45%;
+  margin: 0.2rem 1rem 0.6rem 0;
+}
+
+.longread-media--right {
+  float: right;
+  width: 45%;
+  margin: 0.2rem 0 0.6rem 1rem;
+}
+
+/* Every photo after the first: full-width, centered, below the text. */
+.longread-media--full {
+  float: none;
+  clear: both;
+  width: 100%;
+  margin: 0.6rem auto;
+}
+
+.longread-media--full figcaption {
+  text-align: center;
+}
+
+/* Pink "ФАКТ #N" panel, grows slightly on hover (reference 3_пример). */
+.longread-fact {
+  background: #fbe3ee;
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  margin: 0.55rem 0;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.longread-fact:hover {
+  transform: scale(1.012);
+  box-shadow: 0 6px 18px rgba(225, 89, 137, 0.25);
+}
+
+.longread-fact__label {
+  font-style: italic;
+  font-weight: 700;
+  color: #e15989;
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.02em;
+}
+
+.longread-fact__body {
+  font-style: italic;
+  color: #4a2030;
 }
 
 /* Mobile carousel controls — visible only inside the mobile @media block below. */
@@ -256,7 +361,7 @@
   /* Desktop default: sit just to the left of the longread overlay. */
   right: calc(var(--longread-w) + 16px);
   z-index: 10;
-  background: rgba(255, 246, 226, 0.92);
+  background: #fff;
   backdrop-filter: blur(6px);
   border: 1px solid rgba(60, 30, 0, 0.18);
   border-radius: 8px;
@@ -266,6 +371,10 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   max-width: 260px;
   pointer-events: auto;
+}
+
+.overlay-toggle-panel input[type='checkbox'] {
+  accent-color: #000;
 }
 
 .overlay-toggle-panel__header {
@@ -285,6 +394,28 @@
   padding: 3px 0;
   cursor: pointer;
   line-height: 1.3;
+}
+
+.overlay-toggle-panel__group {
+  margin-bottom: 2px;
+}
+
+.overlay-toggle-panel__categories {
+  margin: 0 0 2px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.overlay-toggle-panel__category {
+  font-size: 12px;
+  opacity: 0.78;
+  line-height: 1.3;
+}
+
+.overlay-toggle-panel__row--category {
+  padding-left: 1.25rem;
+  font-size: 12px;
 }
 
 /* ---------- MapLibre attribution control — overlay treatment ---------- */
@@ -350,8 +481,8 @@
   }
 
   .map-panel {
-    flex: 0 0 calc(72dvh - var(--mobile-topbar-h));
-    height: calc(72dvh - var(--mobile-topbar-h));
+    flex: 0 0 calc(55dvh - var(--mobile-topbar-h));
+    height: calc(55dvh - var(--mobile-topbar-h));
     padding: 0;
     padding-top: var(--mobile-topbar-h);
   }
@@ -369,12 +500,13 @@
     position: relative;
     top: auto;
     right: auto;
-    flex: 1 1 28dvh;
-    height: 28dvh;
+    flex: 1 1 45dvh;
+    height: 45dvh;
     width: 100%;
     min-height: 0;
     z-index: auto;
     background: #fff;
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   .longread {
@@ -415,6 +547,22 @@
     touch-action: pan-x;
   }
 
+  .longread-chapter-group {
+    display: contents;
+  }
+
+  .longread-chapter {
+    display: none;
+  }
+
+  .longread-media--left,
+  .longread-media--right {
+    float: none;
+    width: 100%;
+    max-width: 100%;
+    margin: 0.6rem 0;
+  }
+
   .longread-content-items::-webkit-scrollbar {
     display: none;
   }
@@ -427,12 +575,13 @@
     overflow-x: hidden;
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    padding: 1.9rem 1rem 0.25rem;
+    padding: 1.9rem 1rem calc(0.25rem + env(safe-area-inset-bottom, 0));
     border-bottom: none;
     opacity: 1;
     transform: none;
     touch-action: pan-y;
     -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
   }
 
   .longread-content-item.is-active {
@@ -509,7 +658,7 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 32px;
+    width: 44px;
     height: 64px;
     background: rgba(255, 255, 255, 0.78);
     color: rgba(19, 35, 47, 0.85);
@@ -545,6 +694,25 @@
     max-width: 60vw;
     font-size: 12px;
     padding: 8px 10px;
+  }
+
+  .mountain-popup {
+    position: fixed;
+    left: 0 !important;
+    right: 0;
+    bottom: 0;
+    top: auto !important;
+    width: 100%;
+    max-width: 100%;
+    max-height: 40vh;
+    overflow-y: auto;
+    transform: none;
+    border-radius: 12px 12px 0 0;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+  }
+
+  .mountain-popup::after {
+    display: none;
   }
 }
 
@@ -600,10 +768,39 @@
   padding-right: 1.25rem;
 }
 
+.mountain-popup__fact {
+  font-size: 0.85rem;
+  color: #c0c4c8;
+  margin-top: 0.15rem;
+}
+
+.mountain-popup__type {
+  font-size: 0.8rem;
+  color: rgb(225, 89, 137);
+  margin-top: 0.2rem;
+  text-transform: lowercase;
+}
+
+.mountain-popup__description {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #d8dce0;
+  margin-top: 0.45rem;
+  max-height: 4.5rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
 .mountain-popup__height {
   font-size: 0.85rem;
   color: #c0c4c8;
   margin-top: 0.15rem;
+}
+
+.mountain-popup__thumbs {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
 }
 
 .mountain-popup__thumb {

@@ -1,0 +1,14 @@
+{
+"type": "FeatureCollection",
+"name": "finns_0_1_count_100_plus",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Сертолово" }, "geometry": { "type": "Point", "coordinates": [ 3362914.060803244356066, 8432017.676011657342315 ] } },
+{ "type": "Feature", "properties": { "name": "Дубровка" }, "geometry": { "type": "Point", "coordinates": [ 3443607.377817268483341, 8365200.309190234169364 ] } },
+{ "type": "Feature", "properties": { "name": "Кузьмоловский" }, "geometry": { "type": "Point", "coordinates": [ 3394412.111098284367472, 8424215.256594832986593 ] } },
+{ "type": "Feature", "properties": { "name": "имени Свердлова" }, "geometry": { "type": "Point", "coordinates": [ 3410459.583800620865077, 8354911.636894186958671 ] } },
+{ "type": "Feature", "properties": { "name": "Новое Девяткино" }, "geometry": { "type": "Point", "coordinates": [ 3392602.89107416709885, 8412506.122649922966957 ] } },
+{ "type": "Feature", "properties": { "name": "Коммунар" }, "geometry": { "type": "Point", "coordinates": [ 3383394.887886168435216, 8315963.200338057242334 ] } },
+{ "type": "Feature", "properties": { "name": "Тельмана" }, "geometry": { "type": "Point", "coordinates": [ 3407724.052029714453965, 8338863.066272918134928 ] } }
+]
+}

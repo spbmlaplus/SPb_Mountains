@@ -1,0 +1,746 @@
+{
+  "_generated_by": "scripts/qml_to_style.py",
+  "_note": "Normalized QGIS QML styles. Do not hand-edit; rerun the tool.",
+  "px_per_mm": 2.83,
+  "layers": {
+    "23_1": {
+      "geometry": "marker",
+      "marker": {
+        "shape": "circle",
+        "color": "rgba(29, 70, 205, 1.0)",
+        "size_px": 8.49
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "23_2": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(29, 70, 205, 0.451)"
+      },
+      "outline": {
+        "color": "rgba(29, 70, 205, 1.0)",
+        "width_px": 1.302,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "amphitheater_bound": {
+      "geometry": "line",
+      "line": {
+        "color": "rgba(67, 69, 69, 1.0)",
+        "width_px": 1.415,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "estate": {
+      "renderer": "categorized",
+      "attr": "Типология владения",
+      "geometry": "marker",
+      "categories": {
+        "Вилла": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(236, 236, 236, 1.0)",
+            "size_px": 3.962
+          }
+        },
+        "Дача": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(205, 205, 205, 1.0)",
+            "size_px": 3.962
+          }
+        },
+        "Дворец": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(255, 235, 224, 1.0)",
+            "size_px": 14.716
+          }
+        },
+        "Дом": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(255, 255, 255, 1.0)",
+            "size_px": 3.962
+          }
+        },
+        "Мыза": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(255, 144, 78, 1.0)",
+            "size_px": 9.622
+          }
+        },
+        "Особняк": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(129, 129, 129, 1.0)",
+            "size_px": 3.962
+          }
+        },
+        "Усадьба": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(255, 243, 236, 1.0)",
+            "size_px": 9.056,
+            "outline": {
+              "color": "rgba(223, 68, 0, 1.0)",
+              "width_px": 0.566
+            }
+          }
+        }
+      },
+      "default": {
+        "geometry": "marker",
+        "marker": {
+          "shape": "circle",
+          "color": "rgba(236, 236, 236, 1.0)",
+          "size_px": 8.49
+        }
+      },
+      "layer_opacity": 1.0,
+      "label": {
+        "field": "name",
+        "size_px": 13.33,
+        "bold": false,
+        "italic": false,
+        "color": "rgba(50, 50, 50, 1.0)",
+        "font": "Open Sans",
+        "buffer": {
+          "color": "rgba(250, 250, 250, 1.0)",
+          "width_px": 2.83
+        }
+      }
+    },
+    "Finns": {
+      "renderer": "rule",
+      "rules": [
+        {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(236, 236, 236, 1.0)",
+            "size_px": 2.83
+          },
+          "filter": "\"FINNS%\" <= 1.0000000000000000",
+          "label": "Доля финнов <1% от всего населения"
+        },
+        {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(236, 236, 236, 1.0)",
+            "size_px": 2.83
+          },
+          "filter": "\"FINNS%\" > 1.0000000000000000 AND \"FINNS%\" <= 3.0000000000000000",
+          "label": "Доля финнов 1-5% от всего населения "
+        },
+        {
+          "geometry": "marker",
+          "marker": {
+            "shape": "circle",
+            "color": "rgba(29, 70, 205, 1.0)",
+            "size_px": 5.094
+          },
+          "filter": "\"FINNS%\" > 3.0000000000000000",
+          "label": "Доля финнов >5% от всего населения"
+        }
+      ],
+      "layer_opacity": 1.0
+    },
+    "golf_clubs": {
+      "geometry": "marker",
+      "marker": {
+        "shape": "circle",
+        "color": "rgba(255, 255, 255, 1.0)",
+        "size_px": 8.49
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "historical_resettlement": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(89, 89, 89, 0.4784)"
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0,
+      "label": {
+        "field": "Имя",
+        "size_px": 12.0,
+        "bold": false,
+        "italic": false,
+        "color": "rgba(0, 0, 0, 1.0)",
+        "font": "Arial"
+      }
+    },
+    "historical_zones_1": {
+      "geometry": "fill",
+      "outline": {
+        "color": "rgba(35, 35, 35, 1.0)",
+        "width_px": 1.868,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "historical_zones_2": {
+      "geometry": "fill",
+      "outline": {
+        "color": "rgba(35, 35, 35, 1.0)",
+        "width_px": 1.868,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "historical_zones_3": {
+      "geometry": "fill",
+      "outline": {
+        "color": "rgba(35, 35, 35, 1.0)",
+        "width_px": 1.868,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "historical_zones_4": {
+      "geometry": "fill",
+      "outline": {
+        "color": "rgba(35, 35, 35, 1.0)",
+        "width_px": 1.868,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "historical_zones_5": {
+      "geometry": "fill",
+      "outline": {
+        "color": "rgba(35, 35, 35, 1.0)",
+        "width_px": 1.868,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "horse_riding_clubs": {
+      "geometry": "marker",
+      "marker": {
+        "shape": "circle",
+        "color": "rgba(255, 255, 255, 1.0)",
+        "size_px": 8.49
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "isoline_2m": {
+      "geometry": "line",
+      "line": {
+        "color": "rgba(185, 154, 135, 1.0)",
+        "width_px": 0.311,
+        "dasharray": null
+      },
+      "alpha": 0.901,
+      "renderer": "single",
+      "layer_opacity": 0.7
+    },
+    "isoline_5m": {
+      "geometry": "line",
+      "line": {
+        "color": "rgba(185, 154, 135, 1.0)",
+        "width_px": 0.311,
+        "dasharray": null
+      },
+      "alpha": 0.901,
+      "renderer": "single",
+      "layer_opacity": 0.7
+    },
+    "landscape_12": {
+      "renderer": "categorized",
+      "attr": "Ландшафт",
+      "geometry": "fill",
+      "categories": {
+        "Колтушская возвышенность": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        },
+        "Лемболовская возвышенность": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        },
+        "Озерковские косы": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        },
+        "Румболовская возвышенность": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        },
+        "Юкковская гряда": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(219, 135, 122, 1.0)"
+          }
+        },
+        "Щегловская возвышенность": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        },
+        "Шапкинский кам": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        }
+      },
+      "default": {
+        "geometry": "fill",
+        "fill": {
+          "color": "rgba(152, 125, 183, 1.0)"
+        },
+        "outline": {
+          "color": "rgba(35, 35, 35, 1.0)",
+          "width_px": 0.736,
+          "dasharray": null
+        }
+      },
+      "layer_opacity": 1.0
+    },
+    "landscape_2,5": {
+      "renderer": "categorized",
+      "attr": "Ландшафт",
+      "geometry": "fill",
+      "categories": {
+        "Дудергофские высоты": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(191, 195, 92, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(215, 219, 120, 0.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        },
+        "Моренный пояс": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(191, 195, 92, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(215, 219, 120, 0.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        }
+      },
+      "default": {
+        "geometry": "fill",
+        "fill": {
+          "color": "rgba(243, 166, 178, 1.0)"
+        },
+        "outline": {
+          "color": "rgba(35, 35, 35, 1.0)",
+          "width_px": 0.736,
+          "dasharray": null
+        }
+      },
+      "layer_opacity": 1.0
+    },
+    "landscape_450": {
+      "renderer": "categorized",
+      "attr": "Ландшафт",
+      "geometry": "fill",
+      "categories": {
+        "Ижорское плато": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 0.5843)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          },
+          "alpha": 0.7
+        },
+        "Путиловское плато": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          }
+        }
+      },
+      "default": {
+        "geometry": "fill",
+        "fill": {
+          "color": "rgba(183, 72, 75, 1.0)"
+        },
+        "outline": {
+          "color": "rgba(35, 35, 35, 1.0)",
+          "width_px": 0.736,
+          "dasharray": null
+        }
+      },
+      "layer_opacity": 1.0
+    },
+    "landscape_7": {
+      "renderer": "categorized",
+      "attr": "Ландшафт",
+      "geometry": "fill",
+      "categories": {
+        "Литориновая лагуна": {},
+        "Литориновая терраса": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        },
+        "Литориновые дюны": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(244, 154, 90, 1.0)"
+          },
+          "outline": {
+            "color": "rgba(244, 154, 90, 1.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          }
+        },
+        "Приневская глинистая терраса": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(240, 242, 196, 1.0)"
+          }
+        },
+        "Приневская песчаная терраса": {
+          "geometry": "fill",
+          "fill": {
+            "color": "rgba(255, 218, 143, 0.9961)"
+          },
+          "outline": {
+            "color": "rgba(255, 182, 138, 0.0)",
+            "width_px": 0.736,
+            "dasharray": null
+          },
+          "alpha": 0.7
+        }
+      },
+      "default": {
+        "geometry": "fill",
+        "fill": {
+          "color": "rgba(232, 113, 141, 1.0)"
+        },
+        "outline": {
+          "color": "rgba(35, 35, 35, 1.0)",
+          "width_px": 0.736,
+          "dasharray": null
+        }
+      },
+      "layer_opacity": 1.0
+    },
+    "maki_selki": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(255, 133, 60, 0.7725)"
+      },
+      "outline": {
+        "color": "rgba(255, 133, 60, 1.0)",
+        "width_px": 1.302,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0,
+      "label": {
+        "field": "name",
+        "size_px": 13.33,
+        "bold": true,
+        "italic": false,
+        "color": "rgba(50, 50, 50, 1.0)",
+        "font": "Open Sans"
+      }
+    },
+    "mask_amphitheater": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(0, 0, 0, 0.698)"
+      },
+      "outline": {
+        "color": "rgba(35, 35, 35, 0.0)",
+        "width_px": 0.736,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "mask_balcon": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(0, 0, 0, 0.698)"
+      },
+      "outline": {
+        "color": "rgba(35, 35, 35, 0.0)",
+        "width_px": 0.736,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "mask_belletazh": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(0, 0, 0, 0.698)"
+      },
+      "outline": {
+        "color": "rgba(35, 35, 35, 0.0)",
+        "width_px": 0.736,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "mask_parter": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(0, 0, 0, 0.698)"
+      },
+      "outline": {
+        "color": "rgba(35, 35, 35, 0.0)",
+        "width_px": 0.736,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "mask_stage": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(0, 0, 0, 0.698)"
+      },
+      "outline": {
+        "color": "rgba(143, 209, 187, 1.0)",
+        "width_px": 1.302,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "motocross": {
+      "geometry": "marker",
+      "marker": {
+        "shape": "circle",
+        "color": "rgba(255, 255, 255, 1.0)",
+        "size_px": 8.49
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "mount": {
+      "renderer": "categorized",
+      "attr": "type",
+      "geometry": "marker",
+      "categories": {
+        "возвышенность": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "triangle",
+            "color": "rgba(0, 0, 0, 1.0)",
+            "size_px": 8.49
+          }
+        },
+        "гора": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "triangle",
+            "color": "rgba(0, 0, 0, 1.0)",
+            "size_px": 14.15
+          }
+        },
+        "холм": {
+          "geometry": "marker",
+          "marker": {
+            "shape": "triangle",
+            "color": "rgba(0, 0, 0, 1.0)",
+            "size_px": 5.377
+          }
+        }
+      },
+      "default": {
+        "geometry": "marker",
+        "marker": {
+          "shape": "triangle",
+          "color": "rgba(255, 0, 0, 1.0)",
+          "size_px": 12.169
+        }
+      },
+      "layer_opacity": 1.0,
+      "label": {
+        "field": "name",
+        "size_px": 13.33,
+        "bold": false,
+        "italic": false,
+        "color": "rgba(50, 50, 50, 1.0)",
+        "font": "Open Sans"
+      }
+    },
+    "mount_polygon": {
+      "geometry": "fill",
+      "fill": {
+        "color": "rgba(172, 172, 172, 0.502)"
+      },
+      "outline": {
+        "color": "rgba(172, 172, 172, 1.0)",
+        "width_px": 0.736,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "paragliding_clubs": {
+      "geometry": "marker",
+      "marker": {
+        "shape": "circle",
+        "color": "rgba(255, 255, 255, 1.0)",
+        "size_px": 8.49
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "sectors_level": {
+      "renderer": "categorized",
+      "attr": "type_gis",
+      "geometry": "fill",
+      "categories": {
+        "0": {
+          "geometry": "fill",
+          "outline": {
+            "color": "rgba(0, 0, 0, 1.0)",
+            "width_px": 0.283,
+            "dasharray": [
+              5.0,
+              2.0
+            ]
+          }
+        },
+        "1": {
+          "geometry": "fill",
+          "hatch": {
+            "color": "rgba(50, 126, 105, 0.5961)",
+            "angle_deg": 45.0,
+            "spacing_px": 4.528,
+            "line_width_px": 1.302
+          },
+          "outline": {
+            "color": "rgba(35, 35, 35, 1.0)",
+            "width_px": 0.283,
+            "dasharray": null
+          },
+          "alpha": 0.779
+        }
+      },
+      "default": {
+        "geometry": "fill",
+        "fill": {
+          "color": "rgba(255, 210, 236, 0.0)"
+        },
+        "outline": {
+          "color": "rgba(0, 0, 0, 1.0)",
+          "width_px": 0.283,
+          "dasharray": [
+            5.0,
+            2.0
+          ]
+        }
+      },
+      "layer_opacity": 1.0
+    },
+    "ski_resorts": {
+      "geometry": "marker",
+      "marker": {
+        "shape": "circle",
+        "color": "rgba(255, 255, 255, 1.0)",
+        "size_px": 8.49
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "vomitoria": {
+      "geometry": "line",
+      "line": {
+        "color": "rgba(29, 70, 205, 1.0)",
+        "width_px": 1.868,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    },
+    "walking_routes": {
+      "geometry": "line",
+      "line": {
+        "color": "rgba(141, 142, 142, 1.0)",
+        "width_px": 0.99,
+        "dasharray": null
+      },
+      "renderer": "single",
+      "layer_opacity": 1.0
+    }
+  }
+}

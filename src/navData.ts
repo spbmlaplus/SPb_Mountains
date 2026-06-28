@@ -6,17 +6,11 @@ export type Chapter = {
 
 // Chapter titles match the `Chapter` column in new_legend/Лонгрид_1.csv.
 export const CHAPTERS: Chapter[] = [
-  { num: '01', title: 'Как устроен амфитеатр', hasContent: true },
+  { num: '01', title: 'Горный Петербург', hasContent: true },
   { num: '02', title: 'Горы Петербурга — геологическая летопись', hasContent: true },
   { num: '03', title: 'История «горных финнов»', hasContent: true },
   { num: '04', title: 'Высочайшие наблюдатели', hasContent: true },
   { num: '05', title: 'Горы сейчас', hasContent: true },
-  { num: '06', title: 'Горные дюны', hasContent: false },
-  { num: '07', title: 'Имперские наблюдатели', hasContent: false },
-  { num: '08', title: 'Наука и горы', hasContent: false },
-  { num: '09', title: 'Стратегические высоты', hasContent: false },
-  { num: '10', title: 'Современный досуг', hasContent: false },
-  { num: '11', title: 'Угрозы и угрозы', hasContent: false },
 ]
 
 export type Sector = { num: string; title: string }

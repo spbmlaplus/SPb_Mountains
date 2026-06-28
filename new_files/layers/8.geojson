@@ -1,0 +1,9 @@
+{
+"type": "FeatureCollection",
+"name": "8",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": null, "name": "Ижорское плато" }, "geometry": { "type": "Point", "coordinates": [ 3305068.594401396811008, 8314248.22927503939718 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Путиловское плато" }, "geometry": { "type": "Point", "coordinates": [ 3434011.03287626709789, 8315376.005704849027097 ] } }
+]
+}

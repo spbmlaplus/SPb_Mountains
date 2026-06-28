@@ -32,6 +32,10 @@ new_files/layers/relief_water1.tif
 # Local-dev fallback for self-hosted raster tiles
 public/tiles/
 
+# Click-trigger photos (copied by scripts/copy-new-assets.py → public/)
+public/object_photos/
+src/assets/object_photos/
+
 # Visual-fidelity test working files (HTML reports land in ../.claude-reports/)
 visual-tests/output/
 test-results/

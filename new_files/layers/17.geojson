@@ -1,0 +1,18 @@
+{
+"type": "FeatureCollection",
+"name": "17",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Дворец Потёмкина (Миниха)", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3296783.67636178759858, 8343519.673848383128643 ] } },
+{ "type": "Feature", "properties": { "name": "Дворец Вел. кн. Владимира Александровича", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3349151.993944816756994, 8339924.725281331688166 ] } },
+{ "type": "Feature", "properties": { "name": "Дворец Александра I ", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3351400.027179231867194, 8337611.897973941639066 ] } },
+{ "type": "Feature", "properties": { "name": "Ропшинский дворец", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3324057.290920028463006, 8338475.767445363104343 ] } },
+{ "type": "Feature", "properties": { "name": "Дворец Александра I ", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3351400.027179231867194, 8337611.897973941639066 ] } },
+{ "type": "Feature", "properties": { "name": "Мыза Койрово графа Орлова", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3365309.079750283621252, 8351714.056391508318484 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба Белая (Ново-Елизаветино)", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3312338.260146319400519, 8343201.534025272354484 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба Шунгурово", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3345341.330554900225252, 8346007.020636629313231 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба Беззаботное ", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3337128.965091913938522, 8357781.779693465679884 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба Лапино (Вильповицы) Иоганна-Бурхарда Фельтена", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3305015.557636333629489, 8344986.857082617469132 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба Оржицких (Красная)", "layer_2": "historical_zones_2" }, "geometry": { "type": "Point", "coordinates": [ 3307791.574804127682, 8345683.093315553851426 ] } }
+]
+}

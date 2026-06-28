@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "finns_5_plus_count_100_plus",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Ладожское Озеро" }, "geometry": { "type": "Point", "coordinates": [ 3459438.690332383383065, 8426508.258098293095827 ] } },
+{ "type": "Feature", "properties": { "name": "Новый Свет" }, "geometry": { "type": "Point", "coordinates": [ 3361548.43781798845157, 8302041.218346148729324 ] } },
+{ "type": "Feature", "properties": { "name": "Отрадное" }, "geometry": { "type": "Point", "coordinates": [ 3428511.742420959752053, 8349293.600957542657852 ] } },
+{ "type": "Feature", "properties": { "name": "Аннино" }, "geometry": { "type": "Point", "coordinates": [ 3345879.740815025288612, 8349360.335576569661498 ] } }
+]
+}

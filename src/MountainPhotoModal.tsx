@@ -1,21 +1,25 @@
-import { photoUrl } from './mountainPhotos'
+import { resolveObjectPhotoUrl } from './objectPhotos'
 
 type Props = {
-  photoId: string
+  photoFolder: string
+  photoKey: string
+  slot: 1 | 2
   name: string
-  height: number
+  fact?: string
   onClose: () => void
   onGoFullscreen: () => void
 }
 
 export default function MountainPhotoModal({
-  photoId,
+  photoFolder,
+  photoKey,
+  slot,
   name,
-  height,
+  fact,
   onClose,
   onGoFullscreen,
 }: Props) {
-  const src = photoUrl(photoId, 'full')
+  const src = resolveObjectPhotoUrl(photoFolder, photoKey, slot)
   if (!src) return null
 
   const displayName = name.trim() || '—'
@@ -42,7 +46,7 @@ export default function MountainPhotoModal({
         />
         <div className="mountain-photo-modal__caption">
           <span className="mountain-photo-modal__name">{displayName}</span>
-          <span className="mountain-photo-modal__height">{height.toFixed(1)} м</span>
+          {fact ? <span className="mountain-photo-modal__height">{fact}</span> : null}
         </div>
       </div>
     </div>

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import maplibregl, { type GeoJSONSourceSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import './App.css'
-import img01 from './assets/longread-1-1.png'
 import {
   BASE_COMPOSITIONS,
   DEFAULT_BASE_ID,
@@ -13,14 +12,33 @@ import { VECTOR_STYLES, type LayerStyle } from './layerStyles'
 import { SECTION_OVERLAYS, type OverlayLayer } from './sectionOverlays'
 import OverlayTogglePanel from './OverlayTogglePanel'
 import { useMapInteraction } from './MapInteractionContext'
-import MountainPopup, { type MountainInfo } from './MountainPopup'
+import MountainPopup, { type ObjectPopupInfo } from './MountainPopup'
 import MountainPhotoModal from './MountainPhotoModal'
 import MountainPhotoFullscreen from './MountainPhotoFullscreen'
+import { resolveObjectPhotoUrl } from './objectPhotos'
 import MobileLongreadControls from './MobileLongreadControls'
+import {
+  buildClickConfigsForSection,
+  folderVectorPointLayerFor,
+  isFeatureClickable,
+  matchFolderVectorKey,
+  parseClickFeatureProps,
+  viewpointPhotoFolder,
+  type ClickLayerConfig,
+} from './clickTrigger'
+import { clearClickHighlight, setClickHighlight } from './mapHighlight'
 import { viewpointIcons } from './viewpointPhotos'
+import { paintingIcons } from './paintingPhotos'
 import ViewpointPhotoModal, { type ViewpointInfo } from './ViewpointPhotoModal'
+import {
+  fadeLayerVisibility,
+  instantLayerVisibility,
+  registerLayerHoverFade,
+  type LayerIdFns,
+  type TargetOpacityResolver,
+} from './layerFade'
 import { fallbackLongreadItems } from './fallbackLongread'
-import type { BaseId, ContentItem } from './contentTypes'
+import { isEraCaption, type BaseId, type ContentItem } from './contentTypes'
 import { LAYER_URL_BY_FILE } from './layerUrls'
 
 export type { ContentItem } from './contentTypes'
@@ -57,43 +75,73 @@ type GeoJsonFeatureCollection = Omit<FeatureCollection, 'features'> & {
 
 const fileUrlByName = LAYER_URL_BY_FILE
 
-const insetModules = import.meta.glob('./assets/insets/*.{webp,svg,png}', {
+// Longread media photos, copied from `new_files/photos` to `src/assets/photos`
+// by `scripts/copy-new-assets.py`. The CSV's `Media_Link` column is the basename.
+const photoModules = import.meta.glob('./assets/photos/*.{png,jpg,jpeg,webp}', {
   query: '?url',
   import: 'default',
   eager: true,
 }) as Record<string, string>
 
-const insetUrlByName: Record<string, string> = Object.fromEntries(
-  Object.entries(insetModules).map(([path, url]) => [path.split('/').pop() ?? path, url]),
+const photoUrlByName: Record<string, string> = Object.fromEntries(
+  Object.entries(photoModules).map(([path, url]) => [path.split('/').pop() ?? path, url]),
 )
 
-// Full-width longread figures. The CSV's `Media Link` column names the figure
-// (e.g. `amphitheater.png`, `landscape_450.png`); the files on disk are the
-// design team's renumbered 1.png–5.png set under `assets/longread/`.
-const longreadImageModules = import.meta.glob('./assets/longread/*.{png,jpg,jpeg,webp}', {
-  query: '?url',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>
+const resolvePhoto = (name: string): string | undefined =>
+  photoUrlByName[name] ?? photoUrlByName[name.replace(/,/g, '')]
 
-const longreadByBasename: Record<string, string> = Object.fromEntries(
-  Object.entries(longreadImageModules).map(([path, url]) => [
-    path.split('/').pop() ?? path,
-    url,
-  ]),
-)
-
-const longreadImageByMediaName: Record<string, string | undefined> = {
-  'amphitheater.png': longreadByBasename['1.png'],
-  'landscape_450.png': longreadByBasename['2.png'],
-  'landscape_2,5.png': longreadByBasename['3.png'],
-  'landscape_25.png': longreadByBasename['3.png'],
-  'landscape_12.png': longreadByBasename['4.png'],
-  'landscape_7.png': longreadByBasename['5.png'],
+// Chapter numbers ("01", "02"…) by first appearance, and a running fact index
+// so each `fact` cell renders as "ФАКТ #N".
+const buildLongreadMeta = (items: ContentItem[]) => {
+  const chapterNumber = new Map<string, string>()
+  const factNumberByItemId = new Map<string, number>()
+  let factCount = 0
+  for (const item of items) {
+    if (item.chapter && !chapterNumber.has(item.chapter)) {
+      chapterNumber.set(item.chapter, String(chapterNumber.size + 1).padStart(2, '0'))
+    }
+    if (item.fact) {
+      factCount += 1
+      factNumberByItemId.set(item.id, factCount)
+    }
+  }
+  return { chapterNumber, factNumberByItemId }
 }
 
-const resolveLongreadFigure = (mediaLink: string) =>
-  longreadImageByMediaName[mediaLink] ?? longreadByBasename[mediaLink]
+/** Consecutive items sharing a `chapter` value — one sticky header per group. */
+const groupContentByChapter = (items: ContentItem[]) => {
+  const groups: { chapter: string; items: ContentItem[] }[] = []
+  for (const item of items) {
+    const chapter = item.chapter ?? '—'
+    const last = groups[groups.length - 1]
+    if (last && last.chapter === chapter) {
+      last.items.push(item)
+    } else {
+      groups.push({ chapter, items: [item] })
+    }
+  }
+  return groups
+}
+
+const scrollContentItemIntoView = (
+  itemId: string,
+  itemRefs: { current: Map<string, HTMLDivElement> },
+  listRef: { current: HTMLDivElement | null },
+  behavior: ScrollBehavior = 'smooth',
+) => {
+  const element = itemRefs.current.get(itemId)
+  if (!element) return
+
+  const isMobile = window.matchMedia('(max-width: 768px)').matches
+  if (isMobile) {
+    const rail = listRef.current?.querySelector<HTMLElement>('.longread-content-items')
+    if (!rail) return
+    const left = element.offsetLeft - rail.offsetLeft
+    rail.scrollTo({ left, behavior })
+  } else {
+    element.scrollIntoView({ behavior, block: 'start' })
+  }
+}
 
 type SheetValuesResponse = {
   values?: string[][]
@@ -115,6 +163,12 @@ const sanitizeItemId = (value: string, fallbackIndex: number) => {
   return normalized || `sheet-item-${fallbackIndex}`
 }
 
+const belvederAllowed = (subtitle: string, chapter: string) => {
+  const sub = subtitle.trim().toLowerCase()
+  const ch = chapter.trim().toLowerCase()
+  return sub.includes('николай') && sub.includes('бельведер') && ch.includes('наблюдател')
+}
+
 const parseSheetRows = (rows: string[][]): ContentItem[] => {
   if (rows.length === 0) {
     return []
@@ -123,8 +177,6 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
   const [headerRow, ...dataRows] = rows
   const headerMap = new Map(headerRow.map((value, index) => [value.trim().toLowerCase(), index]))
 
-  // The Sheet follows the longread CSV schema (chapter/subtitle/description/id_map/...).
-  // Header `id _map` carries a space in the source CSV; tolerate both forms.
   const idIndex = headerMap.get('id')
   const chapterIndex = headerMap.get('chapter')
   const titleIndex =
@@ -152,8 +204,11 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
 
       const idMapRaw = idMapIndex !== undefined ? row[idMapIndex]?.trim() : ''
       const baseIdRaw = baseIdIndex !== undefined ? row[baseIdIndex]?.trim() : ''
-      const mediaLinkRaw =
+      let mediaLinkRaw =
         mediaLinkIndex !== undefined ? row[mediaLinkIndex]?.trim() : ''
+      if (mediaLinkRaw.includes('Belveder') && !belvederAllowed(title, chapter)) {
+        mediaLinkRaw = ''
+      }
       const idMapParsed = idMapRaw ? Number(idMapRaw) : NaN
       const baseIdParsed = baseIdRaw ? Number(baseIdRaw) : NaN
 
@@ -162,14 +217,10 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
           ? idMapParsed
           : undefined
 
-      // Resolve base_id: explicit column > chapter inference (chapter 2 = base 3).
       const explicitBaseId =
         Number.isFinite(baseIdParsed) && isBaseId(baseIdParsed) ? baseIdParsed : undefined
       const resolvedBaseId: BaseId = explicitBaseId ?? 1
 
-      // Each Sheet row needs a unique id for scroll tracking. When there's no
-      // dedicated `id` column, fall back to position-based ids — chapter
-      // values repeat across many rows so they aren't unique on their own.
       const id = explicitId
         ? sanitizeItemId(explicitId, index)
         : `sheet-item-${index}`
@@ -178,6 +229,7 @@ const parseSheetRows = (rows: string[][]): ContentItem[] => {
         id,
         title,
         description,
+        paragraphs: description ? [description] : [],
         fileList: normalizeFileList(fileListValue),
         ...(chapter ? { chapter } : {}),
         ...(resolvedIdMap !== undefined ? { id_map: resolvedIdMap } : {}),
@@ -212,7 +264,7 @@ const fillForwardIdMap = (items: ContentItem[]): ContentItem[] => {
 
 const loadContentItemsFromSheet = async () => {
   if (!sheetId || !sheetsApiKey) {
-    return fallbackLongreadItems
+    return fillForwardIdMap(fallbackLongreadItems)
   }
 
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(
@@ -226,7 +278,7 @@ const loadContentItemsFromSheet = async () => {
 
   const data = (await response.json()) as SheetValuesResponse
   const items = fillForwardIdMap(parseSheetRows(data.values ?? []))
-  const base = items.length > 0 ? items : fallbackLongreadItems
+  const base = items.length > 0 ? items : fillForwardIdMap(fallbackLongreadItems)
 
   return fillForwardIdMap(base)
 }
@@ -313,12 +365,19 @@ const fillIdForFile = (fileName: string) => `content-fill-${fileName}`
 const lineIdForFile = (fileName: string) => `content-line-${fileName}`
 const circleIdForFile = (fileName: string) => `content-circle-${fileName}`
 const symbolIdForFile = (fileName: string) => `content-symbol-${fileName}`
+const hatchIdForFile = (fileName: string) => `content-hatch-${fileName}`
+const overlayLabelIdForFile = (fileName: string) => `content-overlay-label-${fileName}`
+const inscriptionLabelIdForFile = (fileName: string) => `content-inscription-${fileName}`
 
 // Viewpoints: a standalone, globally-toggleable layer that renders each
 // viewpoint photo as a small rounded icon at its location.
 const VIEWPOINTS_FILE = 'Viewpoints.geojson'
 const VIEWPOINTS_SOURCE_ID = 'viewpoints-source'
 const VIEWPOINTS_LAYER_ID = 'viewpoints-symbol'
+
+const PAINTINGS_FILE = '21_живопись.geojson'
+const PAINTINGS_SOURCE_ID = 'paintings-source'
+const PAINTINGS_LAYER_ID = 'paintings-symbol'
 
 const baseSourceId = (fileName: string) => `base-source-${fileName}`
 const baseFillId = (fileName: string) => `base-fill-${fileName}`
@@ -404,6 +463,27 @@ const outlinePaintFromStyle = (style: LayerStyle) =>
         ...(style.outline.dasharray ? { 'line-dasharray': style.outline.dasharray } : {}),
       }
     : null
+
+/** Skip outline line layer when QGIS border is fully transparent. */
+const outlineIsVisible = (outline: NonNullable<LayerStyle['outline']>): boolean => {
+  if (outline.width <= 0) return false
+  const color = outline.color
+  if (typeof color !== 'string') return true
+  const match = color.match(/rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*(?:,\s*([\d.]+)\s*)?\)/i)
+  if (match?.[1] !== undefined) return parseFloat(match[1]) > 0
+  return true
+}
+
+const setLayerPaint = (
+  map: maplibregl.Map,
+  layerId: string,
+  paint: Record<string, unknown>,
+) => {
+  if (!map.getLayer(layerId)) return
+  for (const [key, value] of Object.entries(paint)) {
+    map.setPaintProperty(layerId, key, value)
+  }
+}
 
 const linePaintFromStyle = (style: LayerStyle) =>
   style.line
@@ -550,9 +630,12 @@ const addBaseComposition = async (
         })
       }
       if (!map.getLayer(entry.id)) {
-        const paint =
-          entry.paint ??
-          (entry.opacity != null ? { 'raster-opacity': entry.opacity } : {})
+        const paint = {
+          ...(entry.paint ??
+            (entry.opacity != null ? { 'raster-opacity': entry.opacity } : {})),
+          // Smooth 2 s cross-fade when the base composition is swapped.
+          'raster-opacity-transition': { duration: 2000 },
+        }
         map.addLayer(
           {
             id: entry.id,
@@ -651,6 +734,15 @@ const addBaseComposition = async (
 const overlayBeforeId = (map: maplibregl.Map) =>
   map.getLayer(OVERLAY_ANCHOR_ID) ? OVERLAY_ANCHOR_ID : undefined
 
+/** QGIS marker `size_px` is diameter; MapLibre `circle-radius` is radius. */
+const markerRadiusFromSize = (
+  size: number | maplibregl.ExpressionSpecification,
+): number | maplibregl.ExpressionSpecification =>
+  typeof size === 'number' ? size / 2 : (['/', size, 2] as maplibregl.ExpressionSpecification)
+
+const usesCircleMarker = (style: LayerStyle) =>
+  style.type === 'point-symbol' && style.symbol?.shape === 'circle'
+
 const ensureLayerOnMap = async (
   map: maplibregl.Map,
   fileName: string,
@@ -677,8 +769,29 @@ const ensureLayerOnMap = async (
   const beforeId = style?.type === 'point-symbol' ? undefined : overlayBeforeId(map)
 
   if (geometryType === 'Point' && style?.type === 'point-symbol' && style.symbol) {
-    if (!map.getLayer(symbolIdForFile(fileName))) {
-      const { symbol } = style
+    const { symbol } = style
+    if (usesCircleMarker(style)) {
+      if (!map.getLayer(circleIdForFile(fileName))) {
+        map.addLayer(
+          {
+            id: circleIdForFile(fileName),
+            type: 'circle',
+            source: sourceId,
+            paint: {
+              'circle-radius': markerRadiusFromSize(symbol.size),
+              'circle-color': symbol.color,
+              ...(symbol.halo_width !== undefined
+                ? {
+                    'circle-stroke-width': symbol.halo_width,
+                    'circle-stroke-color': symbol.halo_color ?? '#ffffff',
+                  }
+                : {}),
+            },
+          },
+          beforeId,
+        )
+      }
+    } else if (!map.getLayer(symbolIdForFile(fileName))) {
       map.addLayer(
         {
           id: symbolIdForFile(fileName),
@@ -692,6 +805,7 @@ const ensureLayerOnMap = async (
           },
           paint: {
             'text-color': symbol.color,
+            'text-opacity': 1,
             ...(symbol.halo_color ? { 'text-halo-color': symbol.halo_color } : {}),
             ...(symbol.halo_width !== undefined ? { 'text-halo-width': symbol.halo_width } : {}),
           },
@@ -708,34 +822,65 @@ const ensureLayerOnMap = async (
         'fill-color': masked ? '#09131a' : '#f2a541',
         'fill-opacity': masked ? 0.12 : 0.28,
       }
-    if (!map.getLayer(fillIdForFile(fileName))) {
+    const fillId = fillIdForFile(fileName)
+    if (!map.getLayer(fillId)) {
       map.addLayer(
         {
-          id: fillIdForFile(fileName),
+          id: fillId,
           type: 'fill',
           source: sourceId,
           paint: fillPaint,
         },
         beforeId,
       )
+    } else {
+      setLayerPaint(map, fillId, fillPaint)
     }
 
-    const outlinePaint =
-      (style && (outlinePaintFromStyle(style) ?? linePaintFromStyle(style))) ?? {
-        'line-color': masked ? '#203745' : '#f7c56b',
-        'line-width': masked ? 1.5 : 2.2,
-        'line-opacity': masked ? 0.55 : 0.95,
+    const hatchId = hatchIdForFile(fileName)
+    if (style?.hatch) {
+      const imageId = ensureHatchImage(map, style.hatch)
+      if (imageId) {
+        if (!map.getLayer(hatchId)) {
+          map.addLayer(
+            {
+              id: hatchId,
+              type: 'fill',
+              source: sourceId,
+              paint: { 'fill-pattern': imageId },
+            },
+            beforeId,
+          )
+        } else {
+          setLayerPaint(map, hatchId, { 'fill-pattern': imageId })
+        }
       }
-    if (!map.getLayer(lineIdForFile(fileName))) {
-      map.addLayer(
-        {
-          id: lineIdForFile(fileName),
-          type: 'line',
-          source: sourceId,
-          paint: outlinePaint,
-        },
-        beforeId,
-      )
+    } else if (map.getLayer(hatchId)) {
+      map.setLayoutProperty(hatchId, 'visibility', 'none')
+    }
+
+    const lineId = lineIdForFile(fileName)
+    const outlineVisible = style?.outline && outlineIsVisible(style.outline)
+    const outlinePaint = outlineVisible
+      ? (outlinePaintFromStyle(style) ?? linePaintFromStyle(style))
+      : null
+    if (outlinePaint) {
+      if (!map.getLayer(lineId)) {
+        map.addLayer(
+          {
+            id: lineId,
+            type: 'line',
+            source: sourceId,
+            paint: outlinePaint,
+          },
+          beforeId,
+        )
+      } else {
+        map.setLayoutProperty(lineId, 'visibility', 'visible')
+        setLayerPaint(map, lineId, outlinePaint)
+      }
+    } else if (map.getLayer(lineId)) {
+      map.setLayoutProperty(lineId, 'visibility', 'none')
     }
     return
   }
@@ -747,16 +892,19 @@ const ensureLayerOnMap = async (
         'line-width': masked ? 2 : 3,
         'line-opacity': 0.9,
       }
-    if (!map.getLayer(lineIdForFile(fileName))) {
+    const lineId = lineIdForFile(fileName)
+    if (!map.getLayer(lineId)) {
       map.addLayer(
         {
-          id: lineIdForFile(fileName),
+          id: lineId,
           type: 'line',
           source: sourceId,
           paint: linePaint,
         },
         beforeId,
       )
+    } else {
+      setLayerPaint(map, lineId, linePaint)
     }
     return
   }
@@ -779,28 +927,149 @@ const ensureLayerOnMap = async (
   }
 }
 
-const setLayerVisibility = (map: maplibregl.Map, fileName: string, visible: boolean) => {
-  const visibility = visible ? 'visible' : 'none'
+const ensureInscriptionOnMap = async (map: maplibregl.Map, fileName: string) => {
+  const sourceId = sourceIdForFile(fileName)
+  const data = await loadGeoJson(fileName)
 
-  for (const layerId of [
+  if (!map.getSource(sourceId)) {
+    map.addSource(sourceId, {
+      type: 'geojson',
+      data: data as FeatureCollection,
+    } satisfies GeoJSONSourceSpecification)
+  } else {
+    const source = map.getSource(sourceId) as maplibregl.GeoJSONSource
+    source.setData(data as FeatureCollection)
+  }
+
+  const labelId = inscriptionLabelIdForFile(fileName)
+  const compact = COMPACT_INSCRIPTION_FILES.has(fileName)
+  const labelLayout = {
+    'text-field': ['coalesce', ['get', 'inscription'], ['get', 'name']],
+    'text-font': ['literal', [compact ? 'Montserrat Regular' : 'Montserrat Bold']],
+    'text-size': compact ? 10 : 12,
+    'text-offset': [0, compact ? -1.5 : -1.2],
+    'text-allow-overlap': true,
+    'text-ignore-placement': true,
+  } satisfies maplibregl.SymbolLayerSpecification['layout']
+  const labelPaint = {
+    'text-color': '#000000',
+    'text-halo-width': 0,
+  } satisfies maplibregl.SymbolLayerSpecification['paint']
+
+  if (!map.getLayer(labelId)) {
+    map.addLayer(
+      {
+        id: labelId,
+        type: 'symbol',
+        source: sourceId,
+        layout: labelLayout,
+        paint: labelPaint,
+      },
+      overlayBeforeId(map),
+    )
+  } else {
+    for (const [key, value] of Object.entries(labelLayout)) {
+      map.setLayoutProperty(labelId, key as keyof typeof labelLayout, value)
+    }
+    for (const [key, value] of Object.entries(labelPaint)) {
+      map.setPaintProperty(labelId, key as keyof typeof labelPaint, value)
+    }
+  }
+}
+
+const layerIdFns: LayerIdFns = {
+  fillIdForFile,
+  hatchIdForFile,
+  lineIdForFile,
+  circleIdForFile,
+  symbolIdForFile,
+  overlayLabelIdForFile,
+  inscriptionLabelIdForFile,
+}
+
+const INSTANT_LAYER_FILES = new Set(['mount.geojson', 'mount_polygon.geojson'])
+const NO_FADE_ID_MAPS = new Set([13, 14])
+
+const buildCategoryFilter = (
+  classifyAttr: string,
+  enabledValues: string[],
+): maplibregl.FilterSpecification | null => {
+  if (enabledValues.length === 0) {
+    return ['==', ['get', classifyAttr], '__none__']
+  }
+  return ['in', ['get', classifyAttr], ['literal', enabledValues]]
+}
+
+const applyCategoryFilterToFile = (
+  map: maplibregl.Map,
+  fileName: string,
+  overlayLayer: OverlayLayer | undefined,
+  disabledCats: Set<string>,
+  layerVisible: boolean,
+) => {
+  const subIds = [
     fillIdForFile(fileName),
+    hatchIdForFile(fileName),
     lineIdForFile(fileName),
     circleIdForFile(fileName),
     symbolIdForFile(fileName),
-  ]) {
-    if (map.getLayer(layerId)) {
-      map.setLayoutProperty(layerId, 'visibility', visibility)
+  ].filter((id) => Boolean(map.getLayer(id)))
+
+  if (!layerVisible || !overlayLayer?.classify || !overlayLayer.categories?.length) {
+    for (const id of subIds) {
+      if (map.getLayer(id)) map.setFilter(id, null)
     }
+    return
+  }
+
+  const enabled = overlayLayer.categories
+    .filter((c) => !disabledCats.has(c.value))
+    .map((c) => c.value)
+  const filter = buildCategoryFilter(overlayLayer.classify, enabled)
+  for (const id of subIds) {
+    if (map.getLayer(id)) map.setFilter(id, filter)
   }
 }
 
 const fileForLayer = (layerName: string) => `${layerName}.geojson`
 
 const overlayStylesByFile = new Map<string, string>()
+const overlayLayerByFile = new Map<string, OverlayLayer>()
 for (const set of Object.values(SECTION_OVERLAYS)) {
   for (const layer of set.layers) {
+    overlayLayerByFile.set(fileForLayer(layer.name), layer)
     overlayStylesByFile.set(fileForLayer(layer.name), layer.style)
   }
+}
+
+const hasCustomFillOpacity = (fileName: string) =>
+  isMaskFile(fileName) || fileName === 'mount_polygon.geojson'
+
+const fillTargetOpacityForFile = (fileName: string): number | undefined => {
+  if (!hasCustomFillOpacity(fileName)) return undefined
+  const styleName = overlayStylesByFile.get(fileName)
+  const style = styleName ? VECTOR_STYLES[styleName] : undefined
+  const paint = style ? fillPaintFromStyle(style) : null
+  const opacity = paint?.['fill-opacity']
+  return typeof opacity === 'number' ? opacity : undefined
+}
+
+const setLayerVisibility = (
+  map: maplibregl.Map,
+  fileName: string,
+  visible: boolean,
+  idMap?: number,
+) => {
+  const resolveTargetOpacity: TargetOpacityResolver = (layerId, prop) => {
+    if (prop !== 'fill-opacity' || layerId !== fillIdForFile(fileName)) return undefined
+    return fillTargetOpacityForFile(fileName)
+  }
+
+  if (INSTANT_LAYER_FILES.has(fileName) || (idMap !== undefined && NO_FADE_ID_MAPS.has(idMap))) {
+    instantLayerVisibility(map, fileName, visible, layerIdFns, resolveTargetOpacity)
+    return
+  }
+  fadeLayerVisibility(map, fileName, visible, layerIdFns, undefined, resolveTargetOpacity)
 }
 
 const ALL_OVERLAY_FILES = Array.from(
@@ -811,6 +1080,43 @@ const ALL_OVERLAY_FILES = Array.from(
   ),
 )
 
+const ALL_INSCRIPTION_FILES = Array.from(
+  new Set(
+    Object.values(SECTION_OVERLAYS).flatMap((set) =>
+      (set.inscriptions ?? []).map((i) => fileForLayer(i.name)),
+    ),
+  ),
+)
+
+const ALL_FOLDER_VECTOR_FILES = Array.from(
+  new Set(
+    Object.values(SECTION_OVERLAYS).flatMap((set) =>
+      (set.folder_vectors ?? []).map((fv) => fileForLayer(fv.folder_vector)),
+    ),
+  ),
+)
+
+const ALL_STATIC_LAYER_FILES = Array.from(
+  new Set([...ALL_OVERLAY_FILES, ...ALL_INSCRIPTION_FILES, ...ALL_FOLDER_VECTOR_FILES]),
+)
+
+/** id_map 12–20 inscription labels: 10px regular (12px bold elsewhere). */
+const COMPACT_INSCRIPTION_FILES = new Set(
+  Object.entries(SECTION_OVERLAYS).flatMap(([idMap, section]) => {
+    const n = Number(idMap)
+    if (n < 12 || n > 20) return []
+    return (section.inscriptions ?? []).map((i) => fileForLayer(i.name))
+  }),
+)
+
+const clickLayerIdsForFile = (map: maplibregl.Map, fileName: string): string[] =>
+  [
+    symbolIdForFile(fileName),
+    circleIdForFile(fileName),
+    fillIdForFile(fileName),
+    lineIdForFile(fileName),
+  ].filter((id) => Boolean(map.getLayer(id)))
+
 function MainMap() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
@@ -818,36 +1124,83 @@ function MainMap() {
   const itemRefs = useRef(new Map<string, HTMLDivElement>())
   const activeIdRef = useRef('')
   const [mapReady, setMapReady] = useState(false)
-  const [viewpointsOn, setViewpointsOn] = useState(true)
-  const viewpointsOnRef = useRef(viewpointsOn)
-  viewpointsOnRef.current = viewpointsOn
+  const [paintingsOn, setPaintingsOn] = useState(true)
+  const paintingsOnRef = useRef(paintingsOn)
+  paintingsOnRef.current = paintingsOn
+  const [layersSyncGen, setLayersSyncGen] = useState(0)
   const [viewpointModal, setViewpointModal] = useState<ViewpointInfo | null>(null)
-  const initialItems = useMemo(() => fallbackLongreadItems, [])
+  const [paintingModal, setPaintingModal] = useState<{ fid: string; name: string } | null>(null)
+  const initialItems = useMemo(() => fillForwardIdMap(fallbackLongreadItems), [])
   const [contentItems, setContentItems] = useState(initialItems)
   const [activeItemId, setActiveItemId] = useState(initialItems[0]?.id ?? '')
   const [error, setError] = useState<string | null>(null)
 
-  const [mountainPopup, setMountainPopup] = useState<MountainInfo | null>(null)
-  const [mountainPopupPixel, setMountainPopupPixel] = useState<{ x: number; y: number } | null>(null)
-  const [mountainModalPhotoId, setMountainModalPhotoId] = useState<string | null>(null)
-  const [mountainFullscreen, setMountainFullscreen] = useState(false)
+  const [objectPopup, setObjectPopup] = useState<ObjectPopupInfo | null>(null)
+  const [objectPopupPixel, setObjectPopupPixel] = useState<{ x: number; y: number } | null>(null)
+  const [photoModal, setPhotoModal] = useState<{
+    folder: string
+    photoKey: string
+    slot: 1 | 2
+  } | null>(null)
+  const [photoFullscreen, setPhotoFullscreen] = useState(false)
 
-  const closeMountainAll = () => {
-    setMountainPopup(null)
-    setMountainModalPhotoId(null)
-    setMountainFullscreen(false)
+  const closeObjectPopupAll = () => {
+    setObjectPopup(null)
+    setPhotoModal(null)
+    setPhotoFullscreen(false)
+    const map = mapRef.current
+    if (map) {
+      clearClickHighlight(map)
+    }
   }
+
+  const [userDisabled, setUserDisabled] = useState<Record<number, Set<string>>>({})
+  const [userDisabledCategories, setUserDisabledCategories] = useState<
+    Record<number, Record<string, Set<string>>>
+  >({})
 
   const {
     publishActiveItemId,
     publishContentItems,
     registerScroller,
     exploreSector,
+    setExploreSector,
+    scrollToItemId,
+    viewpointsOn,
+    setViewpointsOn,
+    registerExploreMountainsHandler,
   } = useMapInteraction()
+
+  const viewpointsOnRef = useRef(viewpointsOn)
+  viewpointsOnRef.current = viewpointsOn
+
+  useEffect(() => {
+    registerExploreMountainsHandler(() => {
+      const lastId = contentItems.at(-1)?.id ?? 'longread-72-горные-активности'
+      scrollToItemId(lastId)
+      setViewpointsOn(true)
+      setExploreSector(null)
+    })
+    return () => registerExploreMountainsHandler(null)
+  }, [
+    contentItems,
+    scrollToItemId,
+    setViewpointsOn,
+    setExploreSector,
+    registerExploreMountainsHandler,
+  ])
 
   useEffect(() => {
     activeIdRef.current = activeItemId
     publishActiveItemId(activeItemId)
+    const map = mapRef.current
+    setObjectPopup(null)
+    setPhotoModal(null)
+    setPhotoFullscreen(false)
+    setPaintingModal(null)
+    if (map) {
+      clearClickHighlight(map)
+    }
   }, [activeItemId, publishActiveItemId])
 
   useEffect(() => {
@@ -863,52 +1216,154 @@ function MainMap() {
   }, [contentItems, publishContentItems])
 
   useEffect(() => {
-    registerScroller((id) => {
-      const element = itemRefs.current.get(id)
-      if (!element) return
-
-      const isMobile = window.matchMedia('(max-width: 768px)').matches
-      if (isMobile) {
-        const rail = element.parentElement as HTMLElement | null
-        if (!rail) return
-        const left = element.offsetLeft - rail.offsetLeft
-        rail.scrollTo({ left, behavior: 'smooth' })
-      } else {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
-    })
+    registerScroller((id) => scrollContentItemIntoView(id, itemRefs, listRef))
     return () => registerScroller(null)
   }, [registerScroller])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
-    const mountLayerId = symbolIdForFile('mount.geojson')
 
-    const onMountainClick = (e: maplibregl.MapLayerMouseEvent) => {
+    const idMap = contentItems.find((i) => i.id === activeItemId)?.id_map
+    const disabled =
+      idMap !== undefined ? userDisabled[idMap] ?? new Set<string>() : new Set<string>()
+    const configs = buildClickConfigsForSection(idMap).filter(
+      (c) => !disabled.has(c.layerName),
+    )
+
+    const handleClickTrigger = (
+      e: maplibregl.MapLayerMouseEvent,
+      config: ClickLayerConfig,
+    ) => {
       const feature = e.features?.[0]
-      if (!feature || feature.geometry.type !== 'Point') return
-      const props = feature.properties as {
-        name?: string
-        height_value?: number
-        hight?: string
-        'photo id'?: string | null
-      }
-      const [lng, lat] = feature.geometry.coordinates as [number, number]
-      setMountainModalPhotoId(null)
-      setMountainFullscreen(false)
-      const heightFromValue =
-        typeof props.height_value === 'number' ? props.height_value : undefined
-      const heightFromText = props.hight
-        ? Number.parseFloat(props.hight.replace(/[^\d.,]/g, '').replace(',', '.'))
-        : NaN
-      setMountainPopup({
-        lng,
-        lat,
-        name: props.name ?? '—',
-        height: heightFromValue ?? (Number.isFinite(heightFromText) ? heightFromText : 0),
-        photoId: props['photo id'] ?? null,
+      if (!feature?.geometry) return
+      const props = (feature.properties ?? {}) as Record<string, unknown>
+      if (!isFeatureClickable(props, config)) return
+
+      const parsed = parseClickFeatureProps(props)
+      setPhotoModal(null)
+      setPhotoFullscreen(false)
+      setObjectPopup({
+        lng: e.lngLat.lng,
+        lat: e.lngLat.lat,
+        name: parsed.name,
+        fact: parsed.fact,
+        type: parsed.type,
+        description: parsed.description,
+        photoFolder: config.photoFolder,
+        photoKey: parsed.photoKey,
+        objectId: parsed.objectId,
       })
+
+      setClickHighlight(map, feature as Feature<Geometry>)
+      const bbox = computeBBox(feature.geometry as GeoJsonGeometry)
+      if (bbox) {
+        map.fitBounds(bbox, { padding: 80, maxZoom: 14, duration: 700 })
+      }
+    }
+
+    const cleanups: Array<() => void> = []
+    for (const config of configs) {
+      for (const layerId of clickLayerIdsForFile(map, config.fileName)) {
+        const onClick = (e: maplibregl.MapLayerMouseEvent) => handleClickTrigger(e, config)
+        const onMouseEnter = () => {
+          map.getCanvas().style.cursor = 'pointer'
+        }
+        const onMouseLeave = () => {
+          map.getCanvas().style.cursor = ''
+        }
+        map.on('click', layerId, onClick)
+        map.on('mouseenter', layerId, onMouseEnter)
+        map.on('mouseleave', layerId, onMouseLeave)
+        cleanups.push(() => {
+          map.off('click', layerId, onClick)
+          map.off('mouseenter', layerId, onMouseEnter)
+          map.off('mouseleave', layerId, onMouseLeave)
+        })
+      }
+    }
+
+    const onMapClick = (e: maplibregl.MapMouseEvent) => {
+      const clickableIds = configs.flatMap((c) => clickLayerIdsForFile(map, c.fileName))
+      if (clickableIds.length === 0) return
+      const hits = map.queryRenderedFeatures(e.point, { layers: clickableIds })
+      if (hits.length === 0) closeObjectPopupAll()
+    }
+    map.on('click', onMapClick)
+    cleanups.push(() => map.off('click', onMapClick))
+
+    return () => {
+      for (const off of cleanups) off()
+    }
+  }, [mapReady, activeItemId, contentItems, userDisabled, layersSyncGen])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    const idMap = contentItems.find((i) => i.id === activeItemId)?.id_map
+    const pairing = folderVectorPointLayerFor(idMap)
+    if (!pairing) return
+
+    const section = idMap !== undefined ? SECTION_OVERLAYS[idMap] : undefined
+    const photoFolder = viewpointPhotoFolder(section)
+
+    const pointLayerIds = clickLayerIdsForFile(map, pairing.pointFile)
+    if (pointLayerIds.length === 0) return
+
+    const onPointClick = async (e: maplibregl.MapLayerMouseEvent) => {
+      const feature = e.features?.[0]
+      if (!feature) return
+      const props = (feature.properties ?? {}) as Record<string, unknown>
+      const matchKey = matchFolderVectorKey(props)
+      if (!matchKey) return
+
+      if (photoFolder) {
+        const parsed = parseClickFeatureProps(props)
+        setPhotoModal(null)
+        setPhotoFullscreen(false)
+        setObjectPopup({
+          lng: e.lngLat.lng,
+          lat: e.lngLat.lat,
+          name: parsed.name,
+          fact: parsed.fact,
+          type: parsed.type,
+          description: parsed.description,
+          photoFolder,
+          photoKey: parsed.photoKey,
+          objectId: parsed.objectId,
+        })
+      }
+
+      try {
+        const polygonData = await loadGeoJson(pairing.polygonFile)
+        const polygonFeature = polygonData.features.find((f) => {
+          const p = (f.properties ?? {}) as Record<string, unknown>
+          const polyKey =
+            p.layer !== null && p.layer !== undefined
+              ? String(p.layer).trim()
+              : p.name !== null && p.name !== undefined
+                ? String(p.name).trim()
+                : p.id !== null && p.id !== undefined
+                  ? String(p.id).trim()
+                  : ''
+          return polyKey === matchKey
+        })
+        if (polygonFeature?.geometry) {
+          setClickHighlight(map, polygonFeature as Feature<Geometry>, undefined, {
+            fillColor: '#000000',
+            fillOpacity: 0.3,
+            lineWidth: 0,
+          })
+          map.easeTo({
+            center: e.lngLat,
+            zoom: Math.max(map.getZoom(), 12),
+            duration: 700,
+          })
+        }
+      } catch (err) {
+        console.warn('folder_vector: failed to highlight polygon', err)
+      }
     }
 
     const onMouseEnter = () => {
@@ -918,52 +1373,48 @@ function MainMap() {
       map.getCanvas().style.cursor = ''
     }
 
-    const onMapClick = (e: maplibregl.MapMouseEvent) => {
-      if (!map.getLayer(mountLayerId)) return
-      const hits = map.queryRenderedFeatures(e.point, { layers: [mountLayerId] })
-      if (hits.length === 0) {
-        closeMountainAll()
-      }
+    const cleanups: Array<() => void> = []
+    for (const layerId of pointLayerIds) {
+      map.on('click', layerId, onPointClick)
+      map.on('mouseenter', layerId, onMouseEnter)
+      map.on('mouseleave', layerId, onMouseLeave)
+      cleanups.push(() => {
+        map.off('click', layerId, onPointClick)
+        map.off('mouseenter', layerId, onMouseEnter)
+        map.off('mouseleave', layerId, onMouseLeave)
+      })
     }
-
-    map.on('click', mountLayerId, onMountainClick)
-    map.on('mouseenter', mountLayerId, onMouseEnter)
-    map.on('mouseleave', mountLayerId, onMouseLeave)
-    map.on('click', onMapClick)
 
     return () => {
-      map.off('click', mountLayerId, onMountainClick)
-      map.off('mouseenter', mountLayerId, onMouseEnter)
-      map.off('mouseleave', mountLayerId, onMouseLeave)
-      map.off('click', onMapClick)
+      for (const off of cleanups) off()
     }
-  }, [mapReady])
+  }, [mapReady, activeItemId, contentItems, layersSyncGen])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map || !mountainPopup) return
+    if (!map || !objectPopup) return
     const update = () => {
-      const p = map.project([mountainPopup.lng, mountainPopup.lat])
-      setMountainPopupPixel({ x: p.x, y: p.y })
+      const p = map.project([objectPopup.lng, objectPopup.lat])
+      setObjectPopupPixel({ x: p.x, y: p.y })
     }
     update()
     map.on('move', update)
     return () => {
       map.off('move', update)
     }
-  }, [mountainPopup])
+  }, [objectPopup])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (viewpointModal) setViewpointModal(null)
-      else if (mountainFullscreen) setMountainFullscreen(false)
-      else if (mountainModalPhotoId) setMountainModalPhotoId(null)
-      else if (mountainPopup) setMountainPopup(null)
+      else if (photoFullscreen) setPhotoFullscreen(false)
+      else if (photoModal) setPhotoModal(null)
+      else if (objectPopup) closeObjectPopupAll()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [mountainFullscreen, mountainModalPhotoId, mountainPopup, viewpointModal])
+  }, [photoFullscreen, photoModal, objectPopup, viewpointModal])
 
   useEffect(() => {
     const map = mapRef.current
@@ -1063,16 +1514,20 @@ function MainMap() {
       Array.from(
         new Set([
           ...contentItems.flatMap((item) => item.fileList),
-          ...ALL_OVERLAY_FILES,
+          ...ALL_STATIC_LAYER_FILES,
         ]),
       ),
     [contentItems],
   )
 
-  const [userDisabled, setUserDisabled] = useState<Record<number, Set<string>>>({})
   const currentBaseIdRef = useRef<BaseId>(
     isBaseId(DEFAULT_BASE_ID) ? DEFAULT_BASE_ID : 1,
   )
+  // Captured at map init — the "home" view scroll-zoom returns to when the
+  // active longread item carries no `zoom.layer`.
+  const initialViewRef = useRef<{ center: [number, number]; zoom: number } | null>(null)
+  // Remembers the last layer we zoomed to, so we don't re-fit on every render.
+  const lastZoomKeyRef = useRef<string | null>(null)
 
   const activeItem = useMemo(
     () => contentItems.find((item) => item.id === activeItemId),
@@ -1082,7 +1537,9 @@ function MainMap() {
   const activeIdMap = activeItem?.id_map
   const activeOverlay: { layers: OverlayLayer[] } | undefined =
     activeIdMap !== undefined ? SECTION_OVERLAYS[activeIdMap] : undefined
-  const activeOptionalLayers = activeOverlay ? activeOverlay.layers : []
+  const activeOptionalLayers = activeOverlay
+    ? [...activeOverlay.layers].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    : []
   const activeDisabled = activeIdMap !== undefined ? userDisabled[activeIdMap] : undefined
 
   const toggleOptional = (idMap: number, layerName: string) => {
@@ -1094,6 +1551,16 @@ function MainMap() {
     })
   }
 
+  const toggleCategory = (idMap: number, layerName: string, categoryValue: string) => {
+    setUserDisabledCategories((prev) => {
+      const byLayer = { ...(prev[idMap] ?? {}) }
+      const next = new Set(byLayer[layerName] ?? [])
+      if (next.has(categoryValue)) next.delete(categoryValue)
+      else next.add(categoryValue)
+      return { ...prev, [idMap]: { ...byLayer, [layerName]: next } }
+    })
+  }
+
   useEffect(() => {
     loadContentItemsFromSheet()
       .then((items) => {
@@ -1101,8 +1568,8 @@ function MainMap() {
         setActiveItemId(items[0]?.id ?? '')
       })
       .catch((loadError) => {
-        setContentItems(fallbackLongreadItems)
-        setActiveItemId(fallbackLongreadItems[0]?.id ?? '')
+        setContentItems(fillForwardIdMap(fallbackLongreadItems))
+        setActiveItemId(fillForwardIdMap(fallbackLongreadItems)[0]?.id ?? '')
         setError(
           loadError instanceof Error
             ? loadError.message
@@ -1124,6 +1591,7 @@ function MainMap() {
     const initialCenter: [number, number] = isMobile
       ? [30.32, 59.95]
       : [30.61, 59.94]
+    initialViewRef.current = { center: initialCenter, zoom: 10 }
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -1263,6 +1731,107 @@ function MainMap() {
       map.off('mouseleave', VIEWPOINTS_LAYER_ID, onLeave)
     }
   }, [mapReady])
+
+  // Paintings layer (id_map 21): map icons, click → fullscreen photo.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    let cancelled = false
+
+    const build = async () => {
+      const data = (await loadGeoJson(PAINTINGS_FILE)) as FeatureCollection
+      if (cancelled) return
+
+      await Promise.all(
+        data.features.map(async (f) => {
+          const fid = (f.properties as { fid?: number | string } | null)?.fid
+          if (fid === undefined || fid === null) return
+          const id = String(fid)
+          const imageId = `paint-${id}`
+          if (map.hasImage(imageId)) return
+          const bundled = paintingIcons[id]
+          const url = bundled ?? resolveObjectPhotoUrl('21', id, 1)
+          if (!url) return
+          try {
+            const img = await map.loadImage(url)
+            if (cancelled || map.hasImage(imageId)) return
+            map.addImage(imageId, img.data, { pixelRatio: bundled ? 2 : 2 })
+          } catch {
+            /* missing thumbnail */
+          }
+        }),
+      )
+      if (cancelled) return
+
+      if (!map.getSource(PAINTINGS_SOURCE_ID)) {
+        map.addSource(PAINTINGS_SOURCE_ID, {
+          type: 'geojson',
+          data,
+        } satisfies GeoJSONSourceSpecification)
+      }
+      if (!map.getLayer(PAINTINGS_LAYER_ID)) {
+        map.addLayer({
+          id: PAINTINGS_LAYER_ID,
+          type: 'symbol',
+          source: PAINTINGS_SOURCE_ID,
+          layout: {
+            'icon-image': ['concat', 'paint-', ['to-string', ['get', 'fid']]],
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 9, 0.55, 13, 1],
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+            visibility: 'none',
+          },
+        })
+      }
+    }
+
+    build().catch((err) => console.warn('Paintings layer failed', err))
+
+    return () => {
+      cancelled = true
+      if (map.getLayer(PAINTINGS_LAYER_ID)) map.removeLayer(PAINTINGS_LAYER_ID)
+      if (map.getSource(PAINTINGS_SOURCE_ID)) map.removeSource(PAINTINGS_SOURCE_ID)
+    }
+  }, [mapReady])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    if (!map.getLayer(PAINTINGS_LAYER_ID)) return
+    const show = activeIdMap === 21 && paintingsOn
+    map.setLayoutProperty(PAINTINGS_LAYER_ID, 'visibility', show ? 'visible' : 'none')
+  }, [activeIdMap, paintingsOn, mapReady])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || activeIdMap !== 21) return
+
+    const onClick = (e: maplibregl.MapLayerMouseEvent) => {
+      const props = e.features?.[0]?.properties as
+        | { fid?: number | string; name?: string }
+        | undefined
+      if (props?.fid === undefined || props.fid === null) return
+      setPaintingModal({
+        fid: String(props.fid),
+        name: props.name?.trim() || 'Горная живопись',
+      })
+    }
+    const onEnter = () => {
+      map.getCanvas().style.cursor = 'pointer'
+    }
+    const onLeave = () => {
+      map.getCanvas().style.cursor = ''
+    }
+
+    map.on('click', PAINTINGS_LAYER_ID, onClick)
+    map.on('mouseenter', PAINTINGS_LAYER_ID, onEnter)
+    map.on('mouseleave', PAINTINGS_LAYER_ID, onLeave)
+    return () => {
+      map.off('click', PAINTINGS_LAYER_ID, onClick)
+      map.off('mouseenter', PAINTINGS_LAYER_ID, onEnter)
+      map.off('mouseleave', PAINTINGS_LAYER_ID, onLeave)
+    }
+  }, [mapReady, activeIdMap])
 
   useEffect(() => {
     const listElement = listRef.current
@@ -1428,10 +1997,10 @@ function MainMap() {
       }
 
       if (targetItemId) {
+        setActiveItemId(targetItemId)
         const id = targetItemId
         requestAnimationFrame(() => {
-          const el = itemRefs.current.get(id)
-          if (el) el.scrollIntoView({ block: 'center', behavior: 'auto' })
+          scrollContentItemIntoView(id, itemRefs, listRef, 'auto')
         })
       }
     }
@@ -1473,13 +2042,21 @@ function MainMap() {
 
       // 2. Build the visible-overlay set for this section.
       let visibleFiles: Set<string>
+      const folderVectorHidden = new Set<string>()
       if (idMap !== undefined && SECTION_OVERLAYS[idMap]) {
+        const section = SECTION_OVERLAYS[idMap]
         const disabled = userDisabled[idMap] ?? new Set<string>()
         visibleFiles = new Set(
-          SECTION_OVERLAYS[idMap].layers
+          section.layers
             .filter((l) => !disabled.has(l.name))
             .map((l) => fileForLayer(l.name)),
         )
+        for (const insc of section.inscriptions ?? []) {
+          visibleFiles.add(fileForLayer(insc.name))
+        }
+        for (const fv of section.folder_vectors ?? []) {
+          folderVectorHidden.add(fileForLayer(fv.folder_vector))
+        }
       } else {
         // Fallback: legacy Sheet-driven fileList + two-palette path.
         visibleFiles = new Set(item?.fileList ?? [])
@@ -1488,13 +2065,50 @@ function MainMap() {
       // 3. Ensure every known layer is on the map (idempotent) and toggle visibility.
       for (const fileName of allLayerFiles) {
         const styleName = overlayStylesByFile.get(fileName)
-        await ensureLayerOnMap(map, fileName, styleName)
+        if (ALL_INSCRIPTION_FILES.includes(fileName)) {
+          await ensureInscriptionOnMap(map, fileName)
+        } else {
+          await ensureLayerOnMap(map, fileName, styleName)
+        }
 
         if (cancelled) {
           return
         }
 
-        setLayerVisibility(map, fileName, visibleFiles.has(fileName))
+        const visible =
+          visibleFiles.has(fileName) && !folderVectorHidden.has(fileName)
+        setLayerVisibility(map, fileName, visible, idMap)
+
+        const overlayLayer = overlayLayerByFile.get(fileName)
+        const layerName = overlayLayer?.name
+        const disabledCats =
+          idMap !== undefined && layerName
+            ? (userDisabledCategories[idMap]?.[layerName] ?? new Set<string>())
+            : new Set<string>()
+        applyCategoryFilterToFile(map, fileName, overlayLayer, disabledCats, visible)
+
+        if (visible && !INSTANT_LAYER_FILES.has(fileName)) {
+          for (const layerId of [
+            fillIdForFile(fileName),
+            hatchIdForFile(fileName),
+            lineIdForFile(fileName),
+            circleIdForFile(fileName),
+            symbolIdForFile(fileName),
+            inscriptionLabelIdForFile(fileName),
+          ]) {
+            if (map.getLayer(layerId)) registerLayerHoverFade(map, layerId)
+          }
+        }
+        if (visible && fileName === 'mount.geojson') {
+          const symbolId = symbolIdForFile(fileName)
+          if (map.getLayer(symbolId)) {
+            map.setPaintProperty(symbolId, 'text-opacity', 1)
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setLayersSyncGen((g) => g + 1)
       }
     }
 
@@ -1505,7 +2119,64 @@ function MainMap() {
     return () => {
       cancelled = true
     }
-  }, [activeItemId, allLayerFiles, mapReady, contentItems, userDisabled])
+  }, [activeItemId, allLayerFiles, mapReady, contentItems, userDisabled, userDisabledCategories])
+
+  // Scroll-zoom: as the active longread item changes, ease the map to the
+  // extent of its `zoom.layer` over ~3 s. A `hidden` target is never rendered
+  // (we only read its geometry for the bbox), so the zoom happens "by a copy".
+  // Items without a zoom layer return the map to the captured home view.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    const item = contentItems.find((i) => i.id === activeItemId)
+    const zoomLayer = item?.zoom?.layer?.trim()
+
+    // Items without a `Zoom` value leave the camera exactly where it is — no
+    // home-return — so scrolling through them never snaps the map back and
+    // forth. We only move on rows that name a zoom layer.
+    if (!zoomLayer) return
+
+    // Dedup by zoom-layer name (not item id): neighbouring no-zoom rows can't
+    // retrigger, and re-encountering the same layer won't refit.
+    if (lastZoomKeyRef.current === zoomLayer) return
+    lastZoomKeyRef.current = zoomLayer
+
+    const isMobile = window.matchMedia('(max-width: 768px)').matches
+    // Desktop keeps the longread overlay (~650px) on the right; pad that side
+    // so the framed extent stays in the visible (left) part of the map.
+    const padding = isMobile
+      ? { top: 48, bottom: 48, left: 32, right: 32 }
+      : { top: 80, bottom: 80, left: 80, right: 680 }
+
+    let cancelled = false
+    loadGeoJson(`${zoomLayer}.geojson`)
+      .then((data) => {
+        if (cancelled) return
+        let bbox: [[number, number], [number, number]] | null = null
+        for (const feature of data.features) {
+          if (!feature.geometry) continue
+          const fb = computeBBox(feature.geometry)
+          if (!fb) continue
+          bbox = bbox
+            ? [
+                [Math.min(bbox[0][0], fb[0][0]), Math.min(bbox[0][1], fb[0][1])],
+                [Math.max(bbox[1][0], fb[1][0]), Math.max(bbox[1][1], fb[1][1])],
+              ]
+            : fb
+        }
+        if (bbox) {
+          map.fitBounds(bbox, { padding, maxZoom: 13, duration: 3000 })
+        }
+      })
+      .catch((err) => {
+        console.warn(`Scroll-zoom: failed to load ${zoomLayer}.geojson`, err)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeItemId, mapReady, contentItems])
 
   const setItemRef = (itemId: string) => (element: HTMLDivElement | null) => {
     if (!element) {
@@ -1527,87 +2198,155 @@ function MainMap() {
         onToggle={(name) => {
           if (activeIdMap !== undefined) toggleOptional(activeIdMap, name)
         }}
+        disabledCategories={
+          activeIdMap !== undefined ? userDisabledCategories[activeIdMap] : undefined
+        }
+        onToggleCategory={
+          activeIdMap !== undefined
+            ? (layerName, value) => toggleCategory(activeIdMap, layerName, value)
+            : undefined
+        }
         viewpointsOn={viewpointsOn}
         onToggleViewpoints={() => setViewpointsOn((v) => !v)}
+        paintingsOn={activeIdMap === 21 ? paintingsOn : undefined}
+        onTogglePaintings={
+          activeIdMap === 21 ? () => setPaintingsOn((v) => !v) : undefined
+        }
       />
 
-      {mountainPopup && mountainPopupPixel ? (
+      {objectPopup && objectPopupPixel ? (
         <MountainPopup
-          info={mountainPopup}
-          pixel={mountainPopupPixel}
-          onClose={closeMountainAll}
-          onOpenPhoto={(id) => setMountainModalPhotoId(id)}
+          info={objectPopup}
+          pixel={objectPopupPixel}
+          onClose={closeObjectPopupAll}
+          onOpenPhoto={(slot) =>
+            setPhotoModal({
+              folder: objectPopup.photoFolder,
+              photoKey: objectPopup.photoKey,
+              slot,
+            })
+          }
         />
       ) : null}
-      {mountainPopup && mountainModalPhotoId ? (
+      {objectPopup && photoModal ? (
         <MountainPhotoModal
-          photoId={mountainModalPhotoId}
-          name={mountainPopup.name}
-          height={mountainPopup.height}
-          onClose={() => setMountainModalPhotoId(null)}
-          onGoFullscreen={() => setMountainFullscreen(true)}
+          photoFolder={photoModal.folder}
+          photoKey={photoModal.photoKey}
+          slot={photoModal.slot}
+          name={objectPopup.name}
+          fact={objectPopup.fact}
+          onClose={() => setPhotoModal(null)}
+          onGoFullscreen={() => setPhotoFullscreen(true)}
         />
       ) : null}
-      {mountainModalPhotoId && mountainFullscreen ? (
+      {photoModal && photoFullscreen ? (
         <MountainPhotoFullscreen
-          photoId={mountainModalPhotoId}
-          onClose={() => setMountainFullscreen(false)}
+          photoFolder={photoModal.folder}
+          photoKey={photoModal.photoKey}
+          slot={photoModal.slot}
+          onClose={() => setPhotoFullscreen(false)}
         />
       ) : null}
       {viewpointModal ? (
         <ViewpointPhotoModal info={viewpointModal} onClose={() => setViewpointModal(null)} />
       ) : null}
+      {paintingModal ? (
+        <MountainPhotoFullscreen
+          photoFolder="21"
+          photoKey={paintingModal.fid}
+          slot={1}
+          onClose={() => setPaintingModal(null)}
+        />
+      ) : null}
       <div className="longread-wrapper">
         <MobileLongreadControls />
         <div ref={listRef} className="longread">
-          <div className="longread-header">01 Как устроен амфитеатр</div>
-          <div className="longread-description">
-            <div className="flex flex-row my-3 items-center gap-4">
-              <img src={img01} alt="Валентин Назаров" className="w-1/2 aspect-square h-1/2" />
-              <p>
-                Природа подарила нашему городу уникальную, но малоизвестную возможность обзора.
-                Окруженный с трех сторон возвышенностями, с которых открываются потрясающие виды,
-                Петербург лежит в Приневской низине — словно на сцене амфитеатра.
-              </p>
-            </div>
-            <p>
-              Эту метафору предложил градостроитель Валентин Назаров в своей книге &quot;Записки
-              питерского урбаниста&quot;. Простое сравнение, но чрезвычайно глубокое. Если
-              посмотреть на город и его окрестности как на гигантский амфитеатр, все соединяется
-              воедино: физическая география, геология, история.
-            </p>
-          </div>
-          <div className="longread-content">
-          <div className="longread-content-title">Как работает метафора Амфитеатра?</div>
           <div className="longread-content-items">
-              {contentItems.map((item) => {
-                const insets =
-                  item.id_map !== undefined ? SECTION_OVERLAYS[item.id_map]?.inset_images : undefined
-                const figureSrc = item.mediaLink
-                  ? resolveLongreadFigure(item.mediaLink)
-                  : undefined
-                return (
+            {(() => {
+              const { chapterNumber, factNumberByItemId } = buildLongreadMeta(contentItems)
+              // Global media counter: the very first photo keeps its floated
+              // inline layout; every later photo renders full-width below text.
+              let mediaCount = 0
+              return groupContentByChapter(contentItems).map((group, groupIndex) => (
+                <div key={`${group.chapter}-${groupIndex}`} className="longread-chapter-group">
                   <div
-                    key={item.id}
-                    ref={setItemRef(item.id)}
-                    className={`longread-content-item ${item.id === activeItemId ? 'is-active' : ''}`}
+                    className="longread-chapter"
+                    style={{ zIndex: groupIndex + 3 }}
                   >
-                    <div
-                      className="longread-content-item-body"
-                      dangerouslySetInnerHTML={{ __html: item.description }}
-                    />
-                    {figureSrc ? (
-                      <img src={figureSrc} alt="" className="longread-figure" />
-                    ) : null}
-                    {insets?.map((name) => {
-                      const src = insetUrlByName[name]
-                      if (!src) return null
-                      return <img key={name} src={src} alt="" className="longread-inset" />
-                    })}
+                    <span className="longread-chapter__num">
+                      {chapterNumber.get(group.chapter)}
+                    </span>
+                    <span className="longread-chapter__title">{group.chapter}</span>
                   </div>
-                )
-              })}
-            </div>
+                  {(() => {
+                    let lastSubtitle: string | undefined
+                    return group.items.map((item) => {
+                      const subtitleChanged = !!item.subtitle && item.subtitle !== lastSubtitle
+                      const headerSubtitle = subtitleChanged ? item.subtitle : undefined
+                      lastSubtitle = item.subtitle ?? lastSubtitle
+
+                      const photo = item.media ? resolvePhoto(item.media.link) : undefined
+                      const factNo = factNumberByItemId.get(item.id)
+
+                      const hasMedia = Boolean(item.media && photo)
+                      const isFullMedia = item.media?.side === 'full'
+                      const isFirstMedia = hasMedia && !isFullMedia && mediaCount++ === 0
+                      const figureEl =
+                        hasMedia && item.media ? (
+                          <figure
+                            className={
+                              isFullMedia || !isFirstMedia
+                                ? 'longread-media longread-media--full'
+                                : `longread-media longread-media--${item.media.side}`
+                            }
+                          >
+                            <img src={photo} alt={item.media.caption ?? ''} />
+                            {item.media.caption ? (
+                              <figcaption>{item.media.caption}</figcaption>
+                            ) : null}
+                          </figure>
+                        ) : null
+
+                      return (
+                        <div
+                          key={item.id}
+                          ref={setItemRef(item.id)}
+                          className="longread-block longread-content-item"
+                        >
+                          {headerSubtitle ? (
+                            <div className="longread-subtitle">{headerSubtitle}</div>
+                          ) : null}
+                          <div
+                            className={`longread-item ${item.id === activeItemId ? 'is-active' : ''}`}
+                          >
+                            {item.line !== undefined ? <hr className="longread-divider" /> : null}
+                            {isFirstMedia ? figureEl : null}
+                            {item.paragraphs.map((para, i) => (
+                              <p
+                                key={i}
+                                className={
+                                  isEraCaption(para) ? 'longread-era' : 'longread-paragraph'
+                                }
+                                dangerouslySetInnerHTML={{ __html: para }}
+                              />
+                            ))}
+                            {isFullMedia ? figureEl : null}
+                            {item.fact ? (
+                              <div className="longread-fact">
+                                <div className="longread-fact__label">ФАКТ #{factNo}</div>
+                                <div className="longread-fact__body">{item.fact}</div>
+                              </div>
+                            ) : null}
+                            {hasMedia && !isFirstMedia && !isFullMedia ? figureEl : null}
+                            {item.line === 0 ? <hr className="longread-divider" /> : null}
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              ))
+            })()}
           </div>
         </div>
       </div>

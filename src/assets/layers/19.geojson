@@ -1,0 +1,14 @@
+{
+"type": "FeatureCollection",
+"name": "19",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Мыза \"Рябово\" камергера Всеволода Всеволожского", "layer_2": "historical_zones_4" }, "geometry": { "type": "Point", "coordinates": [ 3410863.550100224558264, 8408231.906551253050566 ] } },
+{ "type": "Feature", "properties": { "name": "Мыза Зеленая графа Ягужинского (усадьба Чоглоковых)", "layer_2": "historical_zones_4" }, "geometry": { "type": "Point", "coordinates": [ 3413039.829299843404442, 8384852.602687918581069 ] } },
+{ "type": "Feature", "properties": { "name": "Мыза президента Академии художеств А. Н. Оленина \"Приютино\"", "layer_2": "historical_zones_4" }, "geometry": { "type": "Point", "coordinates": [ 3404152.627912771888077, 8402512.105724273249507 ] } },
+{ "type": "Feature", "properties": { "name": "Мыза Михайловка", "layer_2": "historical_zones_4" }, "geometry": { "type": "Point", "coordinates": [ 3420493.709338369779289, 8376610.889359075576067 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба купца Иогана Бернгарда (мыза Христиановка)", "layer_2": "historical_zones_4" }, "geometry": { "type": "Point", "coordinates": [ 3408484.739331135526299, 8401407.821743598207831 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба купца Роберта Кенша", "layer_2": "historical_zones_4" }, "geometry": { "type": "Point", "coordinates": [ 3410864.886060444172472, 8402285.28041659668088 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба Софиевка купца Г. Ф. Эбергардта", "layer_2": "historical_zones_4" }, "geometry": { "type": "Point", "coordinates": [ 3409269.215172766707838, 8401345.833189353346825 ] } }
+]
+}

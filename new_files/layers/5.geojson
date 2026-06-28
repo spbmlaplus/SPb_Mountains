@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "5",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": null, "name": "Бельэтаж" }, "geometry": { "type": "Point", "coordinates": [ 3393411.081403129268438, 8389433.324595663696527 ] } }
+]
+}

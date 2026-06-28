@@ -9,6 +9,9 @@ export default function MobileMenu() {
     activeItemId,
     contentItems,
     scrollToItemId,
+    exploreMountains,
+    setExploreSector,
+    exploreSector,
   } = useMapInteraction()
 
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -67,6 +70,11 @@ export default function MobileMenu() {
   const handleChapterClick = (firstItemId: string | null, enabled: boolean) => {
     if (!enabled || !firstItemId) return
     scrollToItemId(firstItemId)
+    setMobileMenuOpen(false)
+  }
+
+  const handleExploreMountains = () => {
+    exploreMountains()
     setMobileMenuOpen(false)
   }
 
@@ -131,23 +139,35 @@ export default function MobileMenu() {
       <div className="mobile-menu__footer">
         <span className="mobile-menu__footer-link">О проекте</span>
         <span className="mobile-menu__footer-link">Глоссарий</span>
-        <span className="mobile-menu__footer-link">Исследовать горы</span>
+        <button
+          type="button"
+          className="mobile-menu__footer-link mobile-menu__footer-link--button"
+          onClick={handleExploreMountains}
+        >
+          Исследовать горы
+        </button>
       </div>
 
       <h3 className="mobile-menu__subtitle">Всё о секторах горного амфитеатра</h3>
 
       <ol className="mobile-menu__sectors">
-        {SECTORS.map((s) => (
+        {SECTORS.map((s) => {
+          const sectorIdNum = parseInt(s.num, 10)
+          const active = exploreSector === sectorIdNum
+          return (
           <li
             key={s.num}
-            className="mobile-menu__sector"
-            // TODO: mobile sector detail view (see deferred.md)
-            onClick={() => setMobileMenuOpen(false)}
+            className={`mobile-menu__sector ${active ? 'mobile-menu__sector--active' : ''}`}
+            onClick={() => {
+              setExploreSector(sectorIdNum)
+              setMobileMenuOpen(false)
+            }}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
+                setExploreSector(sectorIdNum)
                 setMobileMenuOpen(false)
               }
             }}
@@ -155,7 +175,8 @@ export default function MobileMenu() {
             <span className="mobile-menu__sector-num">{s.num}</span>
             <span className="mobile-menu__sector-title">{s.title}</span>
           </li>
-        ))}
+          )
+        })}
       </ol>
     </div>
   )

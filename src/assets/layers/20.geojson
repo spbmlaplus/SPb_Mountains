@@ -1,0 +1,23 @@
+{
+"type": "FeatureCollection",
+"name": "20",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Мыза \"Парголово\" большой дворец графов Воронцовых-Дашковых", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3372867.763999804388732, 8416986.135049602016807 ] } },
+{ "type": "Feature", "properties": { "name": "Мыза \"Бугры\" купца Генриха Загамеля", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3382942.783062441740185, 8414722.268495757132769 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк Забелина", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3318111.956562696956098, 8440641.861530225723982 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк Н.Я.Андреева", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3318394.978676698636264, 8440250.104490654543042 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк Сандина", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3318464.174928485881537, 8440496.990427227690816 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк Байковой", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3317648.516824600752443, 8440779.784156648442149 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк инженера Б. К. Правдзика", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3334409.084419016726315, 8422551.86058259755373 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк Лоховой", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3318528.591360990423709, 8440352.531504146754742 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк Духновского", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3318477.919388679787517, 8440235.933349274098873 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк Макаровой", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3318986.236250381916761, 8440433.741252340376377 ] } },
+{ "type": "Feature", "properties": { "name": "Особняк Рогалева", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3317398.912434668745846, 8441062.492660447955132 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба художника И. Е. Репина", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3328077.527906866278499, 8434518.780034020543098 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба «Мариоки» банкира Евгения Картавцева и писательницы Марии Крестовской", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3288668.442682780791074, 8444240.228933023288846 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба графини Е.И.Лопухиной (Левашовых, Вяземских) \"Осиновая роща\"", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3368064.401280324440449, 8424678.809869127348065 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба инженера, советника П.А. Авенариуса", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3336992.352773564867675, 8413053.939236681908369 ] } },
+{ "type": "Feature", "properties": { "name": "Усадьба барона К.Г. Подменера", "layer_2": "historical_zones_5" }, "geometry": { "type": "Point", "coordinates": [ 3291046.37755881389603, 8443449.985070008784533 ] } }
+]
+}

@@ -1,0 +1,18 @@
+{
+"type": "FeatureCollection",
+"name": "10",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": null, "name": "Ижорское плато" }, "geometry": { "type": "Point", "coordinates": [ 3305068.594401396811008, 8314248.22927503939718 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Путиловское плато" }, "geometry": { "type": "Point", "coordinates": [ 3434011.03287626709789, 8315376.005704849027097 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Колтушская возвышенность" }, "geometry": { "type": "Point", "coordinates": [ 3411361.522910926025361, 8382995.600808836519718 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Румболовская возвышенность" }, "geometry": { "type": "Point", "coordinates": [ 3411191.982785494998097, 8409146.280300000682473 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Щегловская возвышенность" }, "geometry": { "type": "Point", "coordinates": [ 3417665.9307, 8408783.829347619786859 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Юкковская гряда" }, "geometry": { "type": "Point", "coordinates": [ 3361235.9307, 8425199.275208907201886 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Озерковские косы" }, "geometry": { "type": "Point", "coordinates": [ 3367495.9307, 8412260.222407557070255 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Лемболовская возвышенность" }, "geometry": { "type": "Point", "coordinates": [ 3350745.9307, 8465813.006065599620342 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Шапкинский кам" }, "geometry": { "type": "Point", "coordinates": [ 3465755.9307, 8321469.879339615814388 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Дудергофские высоты" }, "geometry": { "type": "Point", "coordinates": [ 3360315.9307, 8334692.343411546200514 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Моренный пояс" }, "geometry": { "type": "Point", "coordinates": [ 3369565.9307, 8346181.630280491895974 ] } }
+]
+}

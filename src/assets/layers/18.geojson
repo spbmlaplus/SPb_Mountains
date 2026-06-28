@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "18",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Мариенталь (крепость Бип)", "layer_2": "historical_zones_3" }, "geometry": { "type": "Point", "coordinates": [ 3388950.841401037294418, 8328992.426142638549209 ] } },
+{ "type": "Feature", "properties": { "name": "Павловский дворец", "layer_2": "historical_zones_3" }, "geometry": { "type": "Point", "coordinates": [ 3389973.347081816289574, 8330089.447094635106623 ] } },
+{ "type": "Feature", "properties": { "name": "Екатерининский дворец", "layer_2": "historical_zones_3" }, "geometry": { "type": "Point", "coordinates": [ 3383607.943652820307761, 8336785.74725604057312 ] } },
+{ "type": "Feature", "properties": { "name": "Дворец Палей", "layer_2": "historical_zones_3" }, "geometry": { "type": "Point", "coordinates": [ 3385731.535352444276214, 8336350.21865978743881 ] } },
+{ "type": "Feature", "properties": { "name": "Баболовский дворец", "layer_2": "historical_zones_3" }, "geometry": { "type": "Point", "coordinates": [ 3377939.315491341520101, 8335167.327150152996182 ] } }
+]
+}

@@ -20,6 +20,7 @@ export default function Sidebar() {
     scrollToItemId,
     exploreSector,
     setExploreSector,
+    exploreMountains,
   } = useMapInteraction()
 
   useEffect(() => {
@@ -60,6 +61,11 @@ export default function Sidebar() {
   const handleChapterClick = (firstItemId: string | null, enabled: boolean) => {
     if (!enabled || !firstItemId) return
     scrollToItemId(firstItemId)
+    setExpanded(false)
+  }
+
+  const handleExploreMountains = () => {
+    exploreMountains()
     setExpanded(false)
   }
 
@@ -153,13 +159,31 @@ export default function Sidebar() {
           <footer className="sidebar__footer">
             <span className="sidebar__footer-link">О проекте</span>
             <span className="sidebar__footer-link">Глоссарий</span>
-            <span className="sidebar__footer-link">Исследовать горы</span>
+            <button
+              type="button"
+              className="sidebar__footer-link sidebar__footer-link--button"
+              onClick={handleExploreMountains}
+            >
+              Исследовать горы
+            </button>
           </footer>
         </div>
       ) : (
         <div className="sidebar__body sidebar__body--collapsed">
           <ul className="sidebar__vlabels">
-            <li>Исследовать горы</li>
+            <li
+              role="button"
+              tabIndex={0}
+              onClick={handleExploreMountains}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  handleExploreMountains()
+                }
+              }}
+            >
+              Исследовать горы
+            </li>
             <li>Глоссарий</li>
             <li>О проекте</li>
           </ul>

@@ -14,5 +14,12 @@ export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? "/SPb_Mountains/",
   define: {
     'process.env': {},
-  }
+  },
+  // Source CSV/photos/xlsx under new_* are not part of the Vite graph; watching
+  // them on Windows often throws EBUSY when files are open elsewhere and kills dev.
+  server: {
+    watch: {
+      ignored: ['**/new_files/**', '**/new_legend/**'],
+    },
+  },
 })

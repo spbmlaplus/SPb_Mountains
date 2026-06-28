@@ -1,0 +1,21 @@
+{
+"type": "FeatureCollection",
+"name": "16",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "name": "Вилла Вел.кн. К.К. Романова", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3319219.038312603719532, 8378904.602908269502223 ] } },
+{ "type": "Feature", "properties": { "name": "Меншиковский дворец", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3312203.59168076235801, 8380820.937445303425193 ] } },
+{ "type": "Feature", "properties": { "name": "Большой дворец", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3329432.914245413150638, 8374085.877201574854553 ] } },
+{ "type": "Feature", "properties": { "name": "Фермерский дворец", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3332190.82797409966588, 8372878.695859967730939 ] } },
+{ "type": "Feature", "properties": { "name": "Орловский дворец", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3344019.1512840539217, 8366766.746232797391713 ] } },
+{ "type": "Feature", "properties": { "name": "Большой Стрельнинский дворец (Константиновский)", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3346085.210239309351891, 8367287.504438085481524 ] } },
+{ "type": "Feature", "properties": { "name": "Дворец Меншикова \"Фаворит\"", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3340481.25759438611567, 8368578.295334693044424 ] } },
+{ "type": "Feature", "properties": { "name": "Английский дворец", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3326374.13422404229641, 8373281.473308694548905 ] } },
+{ "type": "Feature", "properties": { "name": "Путевой дворец Петра 1", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3344585.9307, 8367241.823168054223061 ] } },
+{ "type": "Feature", "properties": { "name": "Дворец Лейхтенбергских", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3322102.580525125842541, 8376282.634924134239554 ] } },
+{ "type": "Feature", "properties": { "name": "Дворец \"Бельведер\"", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3326201.590030979830772, 8366110.314988422207534 ] } },
+{ "type": "Feature", "properties": { "name": "Знаменский дворец", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3335650.101841076277196, 8372374.911520556546748 ] } },
+{ "type": "Feature", "properties": { "name": "Дворец \"Коттедж\"", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3333507.205282338429242, 8372724.249334123916924 ] } },
+{ "type": "Feature", "properties": { "name": "Мыза Нагорное (Трофимовича)", "layer_2": "historical_zones_1" }, "geometry": { "type": "Point", "coordinates": [ 3303833.76498186821118, 8380365.471349244937301 ] } }
+]
+}

@@ -1,12 +1,19 @@
-import { photoUrl } from './mountainPhotos'
+import { resolveObjectPhotoUrl } from './objectPhotos'
 
 type Props = {
-  photoId: string
+  photoFolder: string
+  photoKey: string
+  slot: 1 | 2
   onClose: () => void
 }
 
-export default function MountainPhotoFullscreen({ photoId, onClose }: Props) {
-  const src = photoUrl(photoId, 'full')
+export default function MountainPhotoFullscreen({
+  photoFolder,
+  photoKey,
+  slot,
+  onClose,
+}: Props) {
+  const src = resolveObjectPhotoUrl(photoFolder, photoKey, slot)
   if (!src) return null
 
   return (

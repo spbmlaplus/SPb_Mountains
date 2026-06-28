@@ -1,0 +1,6 @@
+id_map,id_layer_click,name_layer_base,type_layer,,raster_style
+1,1,positron с подписями,tif,,
+1,2,relief_water1,geojson,,55
+1,3,isoline_5m,geojson,,
+1,4,sectors_level,geojson,,
+1,5,amphitheater_bound,geojson,,

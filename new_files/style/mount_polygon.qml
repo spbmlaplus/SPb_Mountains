@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE qgis PUBLIC "http://mrcc.com/qgis.dtd" "SYSTEM">
 <qgis version="3.44.8-Solothurn" styleCategories="AllStyleCategories" layername="mount_polygon">
-<renderer-v2 referencescale="-1" forceraster="0" type="singleSymbol" enableorderby="0" symbollevels="0">
+<renderer-v2 forceraster="0" type="singleSymbol" referencescale="-1" enableorderby="0" symbollevels="0">
         <symbols>
-          <symbol force_rhr="0" alpha="1" name="0" clip_to_extent="1" type="fill" frame_rate="10" is_animated="0">
+          <symbol frame_rate="10" is_animated="0" clip_to_extent="1" force_rhr="0" type="fill" name="0" alpha="1">
             <data_defined_properties>
               <Option type="Map">
-                <Option name="name" value="" type="QString" />
+                <Option value="" type="QString" name="name" />
                 <Option name="properties" />
-                <Option name="type" value="collection" type="QString" />
+                <Option value="collection" type="QString" name="type" />
               </Option>
             </data_defined_properties>
-            <layer id="{2cc2afc6-a14b-4c46-9b4d-7087ccd4f744}" class="SimpleFill" pass="0" locked="0" enabled="1">
+            <layer id="{2cc2afc6-a14b-4c46-9b4d-7087ccd4f744}" pass="0" enabled="1" locked="0" class="SimpleFill">
               <Option type="Map">
-                <Option name="border_width_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString" />
-                <Option name="color" value="172,172,172,128,hsv:0.02583333333333333,0,0.67400625619897769,0.50000762951094835" type="QString" />
-                <Option name="joinstyle" value="bevel" type="QString" />
-                <Option name="offset" value="0,0" type="QString" />
-                <Option name="offset_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString" />
-                <Option name="offset_unit" value="MM" type="QString" />
-                <Option name="outline_color" value="172,172,172,255,hsv:0.02583333333333333,0,0.67400625619897769,1" type="QString" />
-                <Option name="outline_style" value="solid" type="QString" />
-                <Option name="outline_width" value="0.26" type="QString" />
-                <Option name="outline_width_unit" value="MM" type="QString" />
-                <Option name="style" value="solid" type="QString" />
+                <Option value="3x:0,0,0,0,0,0" type="QString" name="border_width_map_unit_scale" />
+                <Option value="172,172,172,128,hsv:0.02583333333333333,0,0.67400625619897769,0.50000762951094835" type="QString" name="color" />
+                <Option value="bevel" type="QString" name="joinstyle" />
+                <Option value="0,0" type="QString" name="offset" />
+                <Option value="3x:0,0,0,0,0,0" type="QString" name="offset_map_unit_scale" />
+                <Option value="MM" type="QString" name="offset_unit" />
+                <Option value="172,172,172,255,hsv:0.02583333333333333,0,0.67400625619897769,1" type="QString" name="outline_color" />
+                <Option value="solid" type="QString" name="outline_style" />
+                <Option value="0.26" type="QString" name="outline_width" />
+                <Option value="MM" type="QString" name="outline_width_unit" />
+                <Option value="solid" type="QString" name="style" />
               </Option>
               <data_defined_properties>
                 <Option type="Map">
-                  <Option name="name" value="" type="QString" />
+                  <Option value="" type="QString" name="name" />
                   <Option name="properties" />
-                  <Option name="type" value="collection" type="QString" />
+                  <Option value="collection" type="QString" name="type" />
                 </Option>
               </data_defined_properties>
             </layer>
@@ -39,9 +39,9 @@
         <sizescale />
         <data-defined-properties>
           <Option type="Map">
-            <Option name="name" value="" type="QString" />
+            <Option value="" type="QString" name="name" />
             <Option name="properties" />
-            <Option name="type" value="collection" type="QString" />
+            <Option value="collection" type="QString" name="type" />
           </Option>
         </data-defined-properties>
       </renderer-v2>

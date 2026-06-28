@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "2",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": null, "name": "Пулковские высоты", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3374694.791006864048541, 8350922.027149352245033 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Дудергофские высоты", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3362285.782240524888039, 8330305.788351560942829 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Ропшинские высоты", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3317885.303619331680238, 8340762.723046695813537 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Колтушская возвышенность", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3413204.722443583421409, 8384724.866934162564576 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Румболовская возвышенность", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3415645.936612782068551, 8409143.22169148735702 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Охтинские высоты", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3392081.381523698102683, 8428500.407728748396039 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Юкки", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3380781.09511039359495, 8423506.191474262624979 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Токсовские высоты", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3402503.877045014873147, 8436344.001661645248532 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Лемболовская возвышенность", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3355762.306721383240074, 8448914.373267088085413 ] } },
+{ "type": "Feature", "properties": { "fid": null, "name": "Каллеловские высоты", "type": 1 }, "geometry": { "type": "Point", "coordinates": [ 3340995.327319926582277, 8457998.296375725418329 ] } }
+]
+}

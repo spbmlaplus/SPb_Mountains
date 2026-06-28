@@ -76,28 +76,28 @@ styles = {
     },
     "mask_stage": {
         "qml": "src/assets/styles/sections/mask_stage.qml",
-        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.7},
-        "outline": {"color": "rgb(143, 209, 187)", "width_px": 1.3},
+        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.35},
+        "outline": {"color": "rgba(35, 35, 35, 0)", "width_px": 0.736},
     },
     "mask_parter": {
         "qml": "src/assets/styles/sections/mask_parter.qml",
-        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.7},
-        "outline": {"color": "rgb(143, 209, 187)", "width_px": 1.3},
+        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.35},
+        "outline": {"color": "rgba(35, 35, 35, 0)", "width_px": 0.736},
     },
     "mask_belletazh": {
         "qml": "src/assets/styles/sections/mask_belletazh.qml",
-        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.7},
-        "outline": {"color": "rgb(143, 209, 187)", "width_px": 1.3},
+        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.35},
+        "outline": {"color": "rgba(35, 35, 35, 0)", "width_px": 0.736},
     },
     "mask_balcon": {
         "qml": "src/assets/styles/sections/mask_balcon.qml",
-        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.7},
-        "outline": {"color": "rgb(143, 209, 187)", "width_px": 1.3},
+        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.35},
+        "outline": {"color": "rgba(35, 35, 35, 0)", "width_px": 0.736},
     },
     "mask_amphitheater": {
         "qml": "src/assets/styles/sections/mask_amphitheater.qml",
-        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.7},
-        "outline": {"color": "rgb(143, 209, 187)", "width_px": 1.3},
+        "fill": {"color": "rgb(0, 0, 0)", "opacity": 0.35},
+        "outline": {"color": "rgba(35, 35, 35, 0)", "width_px": 0.736},
     },
     "vomitoria": {
         "qml": "src/assets/styles/sections/vomitoria.qml",
@@ -137,7 +137,7 @@ styles = {
     },
     "historical_resettlement": {
         "qml": "src/assets/styles/sections/historical_resettlement.qml",
-        "fill": {"color": "rgb(218, 89, 12)", "opacity": 0.4},
+        "fill": {"color": "rgba(89, 89, 89, 0.4784)"},
     },
     "maki_selki": {
         "qml": "src/assets/styles/sections/maki_selki.qml",
