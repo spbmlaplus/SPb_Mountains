@@ -1,4 +1,5 @@
 import { useMapInteraction } from './MapInteractionContext'
+import { MLA_PLUS_HOME } from './externalLinks'
 
 export default function MobileTopBar() {
   const { mobileMenuOpen, setMobileMenuOpen } = useMapInteraction()
@@ -17,7 +18,14 @@ export default function MobileTopBar() {
         <span className="mobile-top-bar__hamburger-bar" />
         <span className="mobile-top-bar__hamburger-bar" />
       </button>
-      <span className="mobile-top-bar__brand">МЛА+</span>
+      <a
+        className="mobile-top-bar__brand"
+        href={MLA_PLUS_HOME}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        МЛА+
+      </a>
     </header>
   )
 }

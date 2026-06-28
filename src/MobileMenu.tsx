@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useMapInteraction } from './MapInteractionContext'
 import { CHAPTERS, SECTORS, norm } from './navData'
+import { MLA_PLUS_HOME, PROJECT_ABOUT_URL } from './externalLinks'
 
 export default function MobileMenu() {
   const {
@@ -97,7 +98,16 @@ export default function MobileMenu() {
         >
           ✕
         </button>
-        <span className="mobile-menu__brand">МЛА+</span>
+        <span className="mobile-menu__brand">
+          <a
+            className="mobile-menu__brand-link"
+            href={MLA_PLUS_HOME}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            МЛА+
+          </a>
+        </span>
       </div>
 
       <h2 className="mobile-menu__title">Всё о горных просторах Петербурга</h2>
@@ -137,7 +147,14 @@ export default function MobileMenu() {
       <hr className="mobile-menu__divider" />
 
       <div className="mobile-menu__footer">
-        <span className="mobile-menu__footer-link">О проекте</span>
+        <a
+          className="mobile-menu__footer-link"
+          href={PROJECT_ABOUT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          О проекте
+        </a>
         <span className="mobile-menu__footer-link">Глоссарий</span>
         <button
           type="button"

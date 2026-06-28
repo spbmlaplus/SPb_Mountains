@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMapInteraction } from './MapInteractionContext'
 import { CHAPTERS, SECTORS, norm } from './navData'
+import { MLA_PLUS_HOME, PROJECT_ABOUT_URL } from './externalLinks'
 
 const readInitialExpanded = (): boolean => {
   if (typeof window === 'undefined') return false
@@ -157,7 +158,14 @@ export default function Sidebar() {
           </ul>
 
           <footer className="sidebar__footer">
-            <span className="sidebar__footer-link">О проекте</span>
+            <a
+              className="sidebar__footer-link"
+              href={PROJECT_ABOUT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              О проекте
+            </a>
             <span className="sidebar__footer-link">Глоссарий</span>
             <button
               type="button"
@@ -185,9 +193,25 @@ export default function Sidebar() {
               Исследовать горы
             </li>
             <li>Глоссарий</li>
-            <li>О проекте</li>
+            <li>
+              <a
+                className="sidebar__vlabel-link"
+                href={PROJECT_ABOUT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                О проекте
+              </a>
+            </li>
           </ul>
-          <div className="sidebar__mla">МЛА+</div>
+          <a
+            className="sidebar__mla"
+            href={MLA_PLUS_HOME}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            МЛА+
+          </a>
         </div>
       )}
     </aside>

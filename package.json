@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "python scripts/copy-new-assets.py && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "visual:build": "cross-env VITE_BASE_PATH=/ tsc -b && cross-env VITE_BASE_PATH=/ vite build",

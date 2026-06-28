@@ -1181,7 +1181,6 @@ function MainMap() {
   paintingsOnRef.current = paintingsOn
   const [layersSyncGen, setLayersSyncGen] = useState(0)
   const [viewpointModal, setViewpointModal] = useState<ViewpointInfo | null>(null)
-  const [paintingModal, setPaintingModal] = useState<{ fid: string; name: string } | null>(null)
   const initialItems = useMemo(() => fillForwardIdMap(fallbackLongreadItems), [])
   const [contentItems, setContentItems] = useState(initialItems)
   const [activeItemId, setActiveItemId] = useState(initialItems[0]?.id ?? '')
@@ -1193,6 +1192,8 @@ function MainMap() {
     folder: string
     photoKey: string
     slot: 1 | 2
+    name: string
+    fact?: string
   } | null>(null)
   const [photoFullscreen, setPhotoFullscreen] = useState(false)
 
@@ -1250,7 +1251,6 @@ function MainMap() {
     setObjectPopup(null)
     setPhotoModal(null)
     setPhotoFullscreen(false)
-    setPaintingModal(null)
     if (map) {
       clearClickHighlight(map)
     }
@@ -1788,7 +1788,7 @@ function MainMap() {
     }
   }, [mapReady])
 
-  // Paintings layer (id_map 21): map icons, click → fullscreen photo.
+  // Paintings layer (id_map 21): map icons, click → modal photo (same UX as mountains).
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapReady) return
@@ -1867,8 +1867,12 @@ function MainMap() {
         | { fid?: number | string; name?: string }
         | undefined
       if (props?.fid === undefined || props.fid === null) return
-      setPaintingModal({
-        fid: String(props.fid),
+      setObjectPopup(null)
+      setPhotoFullscreen(false)
+      setPhotoModal({
+        folder: '21',
+        photoKey: String(props.fid),
+        slot: 1,
         name: props.name?.trim() || 'Горная живопись',
       })
     }
@@ -2231,18 +2235,23 @@ function MainMap() {
               folder: objectPopup.photoFolder,
               photoKey: objectPopup.photoKey,
               slot,
+              name: objectPopup.name,
+              fact: objectPopup.fact,
             })
           }
         />
       ) : null}
-      {objectPopup && photoModal ? (
+      {photoModal ? (
         <MountainPhotoModal
           photoFolder={photoModal.folder}
           photoKey={photoModal.photoKey}
           slot={photoModal.slot}
-          name={objectPopup.name}
-          fact={objectPopup.fact}
-          onClose={() => setPhotoModal(null)}
+          name={photoModal.name}
+          fact={photoModal.fact}
+          onClose={() => {
+            setPhotoModal(null)
+            setPhotoFullscreen(false)
+          }}
           onGoFullscreen={() => setPhotoFullscreen(true)}
         />
       ) : null}
@@ -2256,14 +2265,6 @@ function MainMap() {
       ) : null}
       {viewpointModal ? (
         <ViewpointPhotoModal info={viewpointModal} onClose={() => setViewpointModal(null)} />
-      ) : null}
-      {paintingModal ? (
-        <MountainPhotoFullscreen
-          photoFolder="21"
-          photoKey={paintingModal.fid}
-          slot={1}
-          onClose={() => setPaintingModal(null)}
-        />
       ) : null}
       <div className="longread-wrapper">
         <MobileLongreadSheet>

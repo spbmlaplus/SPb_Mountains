@@ -37,6 +37,8 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
+      - name: Copy object photos into public/
+        run: python scripts/copy-new-assets.py
       - name: Build
         env:
           VITE_TILE_BASE_URL: ${{ vars.TILE_BASE_URL || 'https://spbmlaplus.github.io/spb_mountains_tiles' }}

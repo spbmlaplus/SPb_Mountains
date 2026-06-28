@@ -112,6 +112,20 @@
     letter-spacing: 0.18em;
     color: #ffffff;
     padding-bottom: 0.75rem;
+    text-decoration: none;
+}
+
+.sidebar__mla:hover {
+    color: #f3c43d;
+}
+
+.sidebar__vlabel-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.sidebar__vlabel-link:hover {
+    color: #f3c43d;
 }
 
 .sidebar__body--expanded {
@@ -292,6 +306,15 @@
     color: #c0c4c8;
     font-size: 0.85rem;
     cursor: default;
+    text-decoration: none;
+}
+
+a.sidebar__footer-link {
+    cursor: pointer;
+}
+
+a.sidebar__footer-link:hover {
+    color: #f3c43d;
 }
 
 .sidebar__footer-link--button {
@@ -379,6 +402,11 @@
     color: #ffffff;
     letter-spacing: 0.06em;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    text-decoration: none;
+}
+
+.mobile-top-bar__brand:hover {
+    color: #f3c43d;
 }
 
 .mobile-menu {
@@ -423,6 +451,15 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     color: #ffffff;
+}
+
+.mobile-menu__brand-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.mobile-menu__brand-link:hover {
+    color: #f3c43d;
 }
 
 .mobile-menu__title {
@@ -496,6 +533,15 @@
     color: #c0c4c8;
     font-size: 0.85rem;
     cursor: default;
+    text-decoration: none;
+}
+
+a.mobile-menu__footer-link {
+    cursor: pointer;
+}
+
+a.mobile-menu__footer-link:hover {
+    color: #f3c43d;
 }
 
 .mobile-menu__footer-link--button {
