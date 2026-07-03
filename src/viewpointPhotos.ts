@@ -1,6 +1,5 @@
 // Viewpoint map icons, prepped by scripts/prep-viewpoint-images.sh.
-// Keyed by the Viewpoints.geojson feature `fid` (e.g. "1001"), which is also
-// the value the MapLibre `icon-image` layer keys on.
+// Keyed by 23_1_points `name` (e.g. "1001"), which is also the MapLibre icon-image key.
 const iconModules = import.meta.glob('./assets/viewpoint_images/*.webp', {
   query: '?url',
   import: 'default',

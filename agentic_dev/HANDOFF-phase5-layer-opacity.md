@@ -1,6 +1,7 @@
 # Handoff: прозрачность масок vs centroids (сессия 2026-06-28)
 
 **Читать после:** [`HANDOFF-phase5-continuation.md`](HANDOFF-phase5-continuation.md)  
+**Актуальный контекст:** [`HANDOFF-current-state.md`](HANDOFF-current-state.md) ← **START HERE** (fix opacity **реализован**, задеплоен в `76c7523`)  
 **Корень:** `C:\Work\SPb_Mountains\SPb_Mountains`  
 **Не коммитить / не пушить** без явной просьбы.
 
@@ -56,7 +57,14 @@ targetOpacityStore := 1  →  map.setPaintProperty(..., 1)  ❌ затирает
 
 ---
 
-## Рекомендуемый подход (не реализован)
+## Рекомендуемый подход — **реализован** (вариант A, commit `76c7523`)
+
+См. [`HANDOFF-current-state.md`](HANDOFF-current-state.md) § Visibility и opacity.
+
+<details>
+<summary>Исходный план (архив)</summary>
+
+## Рекомендуемый подход (был не реализован на момент написания)
 
 **Не** менять глобально `targetOpacityStore` для всех слоёв файла.
 
@@ -113,9 +121,12 @@ npm run build
 
 ---
 
+</details>
+
 ## История handoff
 
 ```
 HANDOFF-phase5-continuation.md
-  → HANDOFF-phase5-layer-opacity.md  ← START HERE (прозрачность масок)
+  → HANDOFF-phase5-layer-opacity.md  (проблема + решение)
+  → HANDOFF-current-state.md         ← START HERE
 ```

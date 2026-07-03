@@ -42,6 +42,35 @@ CHAPTER_RENAME = {
 SKIP_MEDIA_LINKS = {"Finns 2021_legend.png"}
 
 # Facts not yet in xlsx `fact` column (phase 4 hand-tuned; preserve on regen).
+# Runtime id_map fixes: xlsx id _map vs LAYERS.csv / PLAN-QA-2026-07.md (see agentic_dev/HANDOFF-2026-07-03.md).
+# Each rule: (match in subtitle | media | description) -> id_map.
+ID_MAP_OVERRIDES: tuple[tuple[str, int], ...] = (
+    ("landscape_7.png", 11),  # geology end — landscape_7 lives in id_map 11, not legacy 12
+    ("Pietarin valot", 13),
+    ("Призрак Ингерманландии", 14),
+    # Vomitorii paragraph — first id_map=7 item (not conclusion longread-18)
+    ("долины рек — Тосны, Ижоры, Дудергофки", 7),
+)
+
+
+def _resolve_id_map(
+    raw_id_map: int | None,
+    subtitle: str,
+    media_link: str,
+    description_plain: str,
+) -> int | None:
+    if raw_id_map is None:
+        return None
+    haystack = f"{subtitle}\n{media_link}\n{description_plain}"
+    for needle, mapped in ID_MAP_OVERRIDES:
+        if needle in haystack:
+            return mapped
+    # PLAN-QA: intro / recap — id_map 1 (mount), xlsx still has legacy 2
+    if raw_id_map == 2:
+        return 1
+    return raw_id_map
+
+
 EXTRA_FACTS_BY_SNIPPET = (
     (
         "прогулки аристократов по паркам",
@@ -184,7 +213,12 @@ def main() -> None:
         if raw_id_layer_base is not None:
             cur_id_layer_base = raw_id_layer_base
         if raw_id_map is not None:
-            cur_id_map = raw_id_map
+            cur_id_map = _resolve_id_map(
+                raw_id_map,
+                cur_subtitle,
+                media_link,
+                description_plain,
+            )
         id_layer_base = cur_id_layer_base
         id_map = cur_id_map
 

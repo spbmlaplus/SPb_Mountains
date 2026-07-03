@@ -20,7 +20,7 @@ export const fallbackLongreadItems: ContentItem[] = [
       "hidden": false
     },
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-1-как-работает-метафора-амфитеатра",
@@ -34,7 +34,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "chapter": "Горный Петербург",
     "subtitle": "Как работает метафора Амфитеатра?",
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-2-как-работает-метафора-амфитеатра",
@@ -48,7 +48,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "chapter": "Горный Петербург",
     "subtitle": "Как работает метафора Амфитеатра?",
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-3-как-работает-метафора-амфитеатра",
@@ -63,7 +63,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "subtitle": "Как работает метафора Амфитеатра?",
     "line": 0,
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-4-как-работает-метафора-амфитеатра",
@@ -82,7 +82,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     },
     "mediaLink": "Nazarov.png",
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-5-составляющие-амфитеатра",
@@ -97,7 +97,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "subtitle": "Составляющие амфитеатра",
     "line": 1,
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-6-составляющие-амфитеатра",
@@ -111,7 +111,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "chapter": "Горный Петербург",
     "subtitle": "Составляющие амфитеатра",
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-7-составляющие-амфитеатра",
@@ -125,7 +125,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "chapter": "Горный Петербург",
     "subtitle": "Составляющие амфитеатра",
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-8-составляющие-амфитеатра",
@@ -145,7 +145,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     },
     "mediaLink": "amphitheater.png",
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-9-составляющие-амфитеатра",
@@ -160,7 +160,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "subtitle": "Составляющие амфитеатра",
     "line": 1,
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-10-составляющие-амфитеатра",
@@ -276,7 +276,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "chapter": "Горный Петербург",
     "subtitle": "Составляющие амфитеатра",
     "id_layer_base": 1,
-    "id_map": 6
+    "id_map": 7
   },
   {
     "id": "longread-18-составляющие-амфитеатра",
@@ -306,7 +306,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "subtitle": "Как появились горы вокруг Петербурга?",
     "line": 1,
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-20-как-появились-горы-вокруг-петерб",
@@ -320,7 +320,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "chapter": "Горы Петербурга — геологическая летопись",
     "subtitle": "Как появились горы вокруг Петербурга?",
     "id_layer_base": 1,
-    "id_map": 2
+    "id_map": 1
   },
   {
     "id": "longread-21-как-появились-горы-вокруг-петерб",
@@ -540,7 +540,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     },
     "mediaLink": "landscape_7.png",
     "id_layer_base": 1,
-    "id_map": 12
+    "id_map": 11
   },
   {
     "id": "longread-35-горные-финны-освоение-человеком",
@@ -661,7 +661,7 @@ export const fallbackLongreadItems: ContentItem[] = [
       "hidden": true
     },
     "id_layer_base": 1,
-    "id_map": 14
+    "id_map": 13
   },
   {
     "id": "longread-42-призрак-ингерманландии",
@@ -677,7 +677,7 @@ export const fallbackLongreadItems: ContentItem[] = [
     "line": 1,
     "fact": "Финский топоним «мяки» (фин. mäki — «горка», «холм») широко представлен в Санкт-Петербурге и окрестностях, наиболее известным примером являются Коломяги.",
     "id_layer_base": 1,
-    "id_map": 13
+    "id_map": 14
   },
   {
     "id": "longread-43-высочайшие-наблюдатели",

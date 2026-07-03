@@ -32,7 +32,7 @@ export type LayerStyle = {
   // solid per-category fill.
   fillCategories?: { property: string; opacity: number; cases: Record<string, string>; default: string }
   hatch?: { color: string; opacity: number; angleDeg: number; spacingPx: number; lineWidthPx: number }
-  outline?: { color: string | maplibregl.ExpressionSpecification; width: number; opacity?: number; dasharray?: number[] }
+  outline?: { color: string | maplibregl.ExpressionSpecification; width: number | maplibregl.ExpressionSpecification; opacity?: number; dasharray?: number[] }
   line?: { color: string; width: number; dasharray?: number[]; opacity?: number }
   // Label config parsed from the QGIS `labeling` block. Not yet consumed by the
   // runtime (planned for the inscription/label work in a later phase); kept here
@@ -377,9 +377,9 @@ const withEstateStyles = (styles: Record<string, LayerStyle>): Record<string, La
         'match',
         ['get', 'type'],
         'Дом',
-        '#1dba91',
+        '#f39dc6',
         'Дача',
-        '#1dba91',
+        '#f39dc6',
         'Вилла',
         '#1dba91',
         'Мыза',
@@ -492,6 +492,36 @@ const withCalibratedStyles = (styles: Record<string, LayerStyle>): Record<string
     outline: { color: '#3a97e9', width: 0.2 },
   },
 })
+
+const withLandscape7Styles = (styles: Record<string, LayerStyle>): Record<string, LayerStyle> => {
+  const layer = styles['landscape_7']
+  if (!layer?.fillCategories) return styles
+  const cases = { ...layer.fillCategories.cases }
+  cases['Приневская песчаная терраса'] = 'rgba(255, 241, 211, 0.85)'
+  return {
+    ...styles,
+    landscape_7: {
+      ...layer,
+      fillCategories: { ...layer.fillCategories, cases },
+      outline: {
+        color: [
+          'match',
+          ['get', layer.fillCategories.property],
+          'Приневская песчаная терраса',
+          'rgba(0, 0, 0, 0)',
+          'rgba(35, 35, 35, 1)',
+        ] as unknown as maplibregl.ExpressionSpecification,
+        width: [
+          'match',
+          ['get', layer.fillCategories.property],
+          'Приневская песчаная терраса',
+          0,
+          0.736,
+        ] as unknown as maplibregl.ExpressionSpecification,
+      },
+    },
+  }
+}
 
 const withLandscape12Outline = (styles: Record<string, LayerStyle>): Record<string, LayerStyle> => {
   const layer = styles['landscape_12']
@@ -611,19 +641,22 @@ export const VECTOR_STYLES: Record<string, LayerStyle> = withFinnsStyles(
   withHistoricalResettlementStyles(
     withMaskStyles(
       withMountPolygonStyles(
-      withLandscape12Outline(
-        withCalibratedStyles(
-          withClubStyles(
-            withMountStyles(
-              withEstateStyles(
-                augmentFromQml(
-                  Object.fromEntries([
-                    ...stylesFromQmlManifest(qmlLayerStylesManifest as unknown as QmlManifest),
-                    ...stylesFromSectionManifest(sectionOverlaysManifest as SectionStylesManifest),
-                    ...stylesFromBaseManifest(baseCompositionManifest as BaseManifest),
-                  ]),
-                  Object.fromEntries(
-                    stylesFromQmlManifest(qmlLayerStylesManifest as unknown as QmlManifest),
+        withLandscape7Styles(
+          withLandscape12Outline(
+            withCalibratedStyles(
+              withClubStyles(
+                withMountStyles(
+                  withEstateStyles(
+                    augmentFromQml(
+                      Object.fromEntries([
+                        ...stylesFromQmlManifest(qmlLayerStylesManifest as unknown as QmlManifest),
+                        ...stylesFromSectionManifest(sectionOverlaysManifest as SectionStylesManifest),
+                        ...stylesFromBaseManifest(baseCompositionManifest as BaseManifest),
+                      ]),
+                      Object.fromEntries(
+                        stylesFromQmlManifest(qmlLayerStylesManifest as unknown as QmlManifest),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -631,7 +664,6 @@ export const VECTOR_STYLES: Record<string, LayerStyle> = withFinnsStyles(
           ),
         ),
       ),
-    ),
     ),
   ),
 )

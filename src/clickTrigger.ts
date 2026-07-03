@@ -93,13 +93,15 @@ export const readFeatureProp = (
 }
 
 export const parseClickFeatureProps = (props: Record<string, unknown>): ParsedFeatureProps => {
-  const name = readFeatureProp(props, 'name') ?? '—'
-  const fact =
-    readFeatureProp(props, 'fact') ??
+  const name = readFeatureProp(props, 'name', 'Наименование') ?? '—'
+  const descriptionRaw = readFeatureProp(props, 'description', 'description ')
+  const heightFact =
     readFeatureProp(props, 'hight', 'height_value') ??
     (typeof props.height_value === 'number' ? `${props.height_value.toFixed(2)} м` : undefined)
+  const fact = readFeatureProp(props, 'fact') ?? heightFact ?? descriptionRaw
   const type = readFeatureProp(props, 'type')
-  const description = readFeatureProp(props, 'description', 'description ')
+  const description =
+    descriptionRaw && descriptionRaw !== fact ? descriptionRaw : undefined
   const objectId =
     props.id !== null && props.id !== undefined
       ? (props.id as string | number)
@@ -108,7 +110,7 @@ export const parseClickFeatureProps = (props: Record<string, unknown>): ParsedFe
         : name
 
   const explicitPhoto = readFeatureProp(props, 'photo id', 'photo')
-  const nameProp = readFeatureProp(props, 'name')
+  const nameProp = readFeatureProp(props, 'name', 'Наименование')
   let photoKey = explicitPhoto
   if (!photoKey) {
     if (nameProp && /^\d[\w.-]*$/i.test(nameProp)) {

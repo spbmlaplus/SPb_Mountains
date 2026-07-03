@@ -31,12 +31,12 @@
             {
               "value": "холм",
               "label": "Холмы",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "возвышенность",
               "label": "Возвышенности",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "гора",
@@ -85,12 +85,12 @@
             {
               "value": "холм",
               "label": "Холмы",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "возвышенность",
               "label": "Возвышенности",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "гора",
@@ -612,6 +612,46 @@
           "mandatory": true,
           "label": "Историческое расселение",
           "classify": "",
+          "click_trigger": true,
+          "inscription": "",
+          "folder": "",
+          "folder_vector": "",
+          "order": 1
+        }
+      ],
+      "inscriptions": [],
+      "photo_folders": [],
+      "folder_vectors": []
+    },
+    "13": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "maki_selki",
+          "style": "maki_selki",
+          "mandatory": true,
+          "label": "Маки и сельки",
+          "classify": "",
+          "click_trigger": true,
+          "inscription": "",
+          "folder": "",
+          "folder_vector": "",
+          "order": 1
+        }
+      ],
+      "inscriptions": [],
+      "photo_folders": [],
+      "folder_vectors": []
+    },
+    "14": {
+      "default_base": 1,
+      "layers": [
+        {
+          "name": "historical_resettlement",
+          "style": "historical_resettlement",
+          "mandatory": true,
+          "label": "Историческое расселение",
+          "classify": "",
           "click_trigger": false,
           "inscription": "",
           "folder": "",
@@ -731,164 +771,6 @@
         {
           "name": "12",
           "order": 11
-        }
-      ],
-      "photo_folders": [],
-      "folder_vectors": []
-    },
-    "13": {
-      "default_base": 1,
-      "layers": [
-        {
-          "name": "maki_selki",
-          "style": "maki_selki",
-          "mandatory": true,
-          "label": "Маки и сельки",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 1
-        },
-        {
-          "name": "finns_0_1_count_1_10",
-          "style": "finns_0_1_count_1_10",
-          "mandatory": true,
-          "label": "Доля финнов менее 1% населения, численность 1–10 человек",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 2
-        },
-        {
-          "name": "finns_1_5_count_1_10",
-          "style": "finns_1_5_count_1_10",
-          "mandatory": true,
-          "label": "Доля финнов 1–5% населения, численность 1–10 человек",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 3
-        },
-        {
-          "name": "finns_5_plus_count_1_10",
-          "style": "finns_5_plus_count_1_10",
-          "mandatory": true,
-          "label": "Доля финнов более 5% населения, численность 1–10 человек",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 4
-        },
-        {
-          "name": "finns_0_1_count_10_100",
-          "style": "finns_0_1_count_10_100",
-          "mandatory": true,
-          "label": "Доля финнов менее 1% населения, численность 10–100 человек",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 5
-        },
-        {
-          "name": "finns_1_5_count_10_100",
-          "style": "finns_1_5_count_10_100",
-          "mandatory": true,
-          "label": "Доля финнов 1–5% населения, численность 10–100 человек",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 6
-        },
-        {
-          "name": "finns_5_plus_count_10_100",
-          "style": "finns_5_plus_count_10_100",
-          "mandatory": true,
-          "label": "Доля финнов более 5% населения, численность 10–100 человек",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 7
-        },
-        {
-          "name": "finns_0_1_count_100_plus",
-          "style": "finns_0_1_count_100_plus",
-          "mandatory": true,
-          "label": "Доля финнов менее 1% населения, численность более 100 человек",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 8
-        },
-        {
-          "name": "finns_1_5_count_100_plus",
-          "style": "finns_1_5_count_100_plus",
-          "mandatory": true,
-          "label": "Доля финнов 1–5% населения, численность более 100 человек",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 9
-        },
-        {
-          "name": "finns_5_plus_count_100_plus",
-          "style": "finns_5_plus_count_100_plus",
-          "mandatory": true,
-          "label": "Доля финнов более 100 человек и доля более 5% населения",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 10
-        }
-      ],
-      "inscriptions": [
-        {
-          "name": "13",
-          "order": 11
-        }
-      ],
-      "photo_folders": [],
-      "folder_vectors": []
-    },
-    "14": {
-      "default_base": 1,
-      "layers": [
-        {
-          "name": "maki_selki",
-          "style": "maki_selki",
-          "mandatory": true,
-          "label": "Маки и сельки",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "",
-          "order": 1
-        }
-      ],
-      "inscriptions": [
-        {
-          "name": "14",
-          "order": 2
         }
       ],
       "photo_folders": [],
@@ -1284,7 +1166,7 @@
           "mandatory": true,
           "label": "Пешеходные маршруты",
           "classify": "",
-          "click_trigger": false,
+          "click_trigger": true,
           "inscription": "",
           "folder": "",
           "folder_vector": "",
@@ -1296,7 +1178,7 @@
           "mandatory": true,
           "label": "Клубы парапланеризма",
           "classify": "",
-          "click_trigger": false,
+          "click_trigger": true,
           "inscription": "",
           "folder": "",
           "folder_vector": "",
@@ -1308,7 +1190,7 @@
           "mandatory": true,
           "label": "Клубы верховой езды",
           "classify": "",
-          "click_trigger": false,
+          "click_trigger": true,
           "inscription": "",
           "folder": "",
           "folder_vector": "",
@@ -1320,7 +1202,7 @@
           "mandatory": true,
           "label": "Горнолыжные курорты",
           "classify": "",
-          "click_trigger": false,
+          "click_trigger": true,
           "inscription": "",
           "folder": "",
           "folder_vector": "",
@@ -1332,7 +1214,7 @@
           "mandatory": true,
           "label": "Гольф-клубы",
           "classify": "",
-          "click_trigger": false,
+          "click_trigger": true,
           "inscription": "",
           "folder": "",
           "folder_vector": "",
@@ -1344,7 +1226,7 @@
           "mandatory": true,
           "label": "Мотокросс",
           "classify": "",
-          "click_trigger": false,
+          "click_trigger": true,
           "inscription": "",
           "folder": "",
           "folder_vector": "",
@@ -1359,18 +1241,6 @@
       "default_base": 1,
       "layers": [
         {
-          "name": "23_1_points",
-          "style": "23_1",
-          "mandatory": true,
-          "label": "Смотровые точки",
-          "classify": "",
-          "click_trigger": false,
-          "inscription": "",
-          "folder": "",
-          "folder_vector": "23_2_viewshed",
-          "order": 1
-        },
-        {
           "name": "routes",
           "style": "routes",
           "mandatory": true,
@@ -1380,54 +1250,66 @@
           "inscription": "",
           "folder": "",
           "folder_vector": "",
-          "order": 2,
+          "order": 1,
           "categories": [
             {
               "value": "Дудергофские высоты",
               "label": "Дудергофские высоты",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "Пулковские высоты",
               "label": "Пулковские высоты",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "Тосненские высоты",
               "label": "Тосненские высоты",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "Бабигонские высоты",
               "label": "Бабигонские высоты",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "Нагорный бульвар Корниш",
               "label": "Нагорный бульвар Корниш",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "Юкковские гряды",
               "label": "Юкковские гряды",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "Фёдоровский холм",
               "label": "Фёдоровский холм",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "Колтушские высоты",
               "label": "Колтушские высоты",
-              "click_trigger": false
+              "click_trigger": true
             },
             {
               "value": "Аннинские высоты",
               "label": "Аннинские высоты",
-              "click_trigger": false
+              "click_trigger": true
             }
           ]
+        },
+        {
+          "name": "23_1_points",
+          "style": "23_1",
+          "mandatory": true,
+          "label": "23_1",
+          "classify": "",
+          "click_trigger": false,
+          "inscription": "",
+          "folder": "",
+          "folder_vector": "",
+          "order": 2
         }
       ],
       "inscriptions": [
