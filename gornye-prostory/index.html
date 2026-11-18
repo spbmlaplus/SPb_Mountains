@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Горные просторы — горы Петербурга</title>
+<meta name="description" content="Исследование гор вокруг Петербурга: рельеф, история, видовые точки, угрозы утраты и охрана видов. Карта, главы и паспорта видовых точек. МЛА+.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="media/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="vendor/maplibre-gl.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+<script>/* если что-то сломается — показать причину внизу страницы, чтобы её можно было прислать */
+window.GP_ERR = [];
+addEventListener('error', e => { const m = (e.message || (e.target && (e.target.src || e.target.href)) || 'ошибка') + (e.filename ? ' — ' + e.filename.split('/').pop() + ':' + e.lineno : '');
+  if(e.target && e.target !== window && !(e.target.tagName === 'SCRIPT')) return; window.GP_ERR.push(m);
+  const b = document.getElementById('jsErr'); if(b){ b.hidden = false; b.textContent = 'Ошибка скрипта: ' + window.GP_ERR.join(' | '); } }, true);
+</script>
+</head>
+<body data-view="home" data-base="sat" class="intro">
+
+<header class="top">
+  <a class="logo" href="#/">горные просторы</a>
+  <nav aria-label="Разделы">
+    <a href="#/" data-nav="home">Главы</a>
+    <a href="#/map" data-nav="map">Карта</a>
+    <a href="#/mounts" data-nav="mounts">Горы</a>
+    <a href="#/views" data-nav="views">Видовые точки</a>
+    <a href="#/gallery" data-nav="gallery">Галерея</a>
+  </nav>
+</header>
+
+<main class="stage">
+  <div id="map" aria-label="Карта Петербургского амфитеатра"></div>
+  <canvas id="clouds" aria-hidden="true"></canvas>
+
+  <!-- обложка: облака над спутником, затем приветствие -->
+  <section class="cover" id="cover" aria-label="Обложка">
+    <div class="cover-step" id="coverTitle">
+      <p class="cover-kicker">Исследование МЛА+</p>
+      <h1 class="cover-h">горные<br>просторы</h1>
+      <p class="cover-lead">Петербург принято считать плоским городом. Но&nbsp;его окружает целый амфитеатр из&nbsp;холмов, гребней и&nbsp;древних уступов</p>
+      <button class="cover-btn" id="coverEnter">Открыть горы</button>
+    </div>
+    <div class="cover-step cover-welcome" id="coverWelcome" hidden>
+      <p class="cover-first">Так началось наше исследование&nbsp;— попытка взглянуть на&nbsp;знакомый город через его горный ландшафт.</p>
+      <p>От древних морей и&nbsp;ледников до&nbsp;первых финских поселений, дворянских усадеб и&nbsp;дворцов, возведённых ради захватывающих панорам. Горы служили источником строительных материалов, местом научных открытий, а&nbsp;во&nbsp;времена опасности&nbsp;— естественными рубежами защиты города.</p>
+      <p>В поисках этих историй пришлось объехать весь Петербургский амфитеатр, подняться на&nbsp;вершины, отыскать исторические панорамы и&nbsp;поговорить с&nbsp;местными жителями. Результатом стал маршрут, соединяющий ключевые видовые точки, откуда Петербург открывается с&nbsp;его архитектурными доминантами, историческими силуэтами и&nbsp;бескрайними просторами.</p>
+      <p class="cover-turn">Теперь очередь за&nbsp;вами. Кто вы?</p>
+      <div class="cover-roles">
+        <button data-go="#/map"><b>Исследователь</b><svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M0 9 C30 3 45 12 70 7 S115 2 135 8 S175 12 200 5"/></svg><small>Самостоятельно открывать горы, находить любопытные детали и&nbsp;собирать собственную картину города</small></button>
+        <button data-go="#/story/amph/1"><b>Читатель</b><svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M0 6 C25 11 50 3 80 8 S130 12 150 6 S185 2 200 9"/></svg><small>Пройти по&nbsp;следам экспедиций, открытий и&nbsp;встреч, из&nbsp;которых сложилась эта история</small></button>
+      </div>
+      <button class="cover-skip" data-go="#/">К оглавлению</button>
+    </div>
+  </section>
+
+  <div class="mapbar" id="mapbar">
+    <div class="seg" role="group" aria-label="Подложка">
+      <button data-base="sat" aria-pressed="true">Спутник</button>
+      <button data-base="scheme" aria-pressed="false">Схема</button>
+    </div>
+    <button class="sq sq-3d" id="btn3d" aria-pressed="false" title="Объёмный рельеф">3D</button>
+    <button class="sq" id="btnHome" title="Показать весь амфитеатр" aria-label="Показать весь амфитеатр">
+      <svg viewBox="0 0 24 24"><path d="M3 20 L9.5 8 L13 14 L16 9.5 L21 20 Z"/></svg>
+    </button>
+  </div>
+  <div class="vsbar" id="vsbar" hidden>
+    <span id="vsName"></span>
+    <label class="sw"><input type="checkbox" id="vsToggle" checked><i></i>Зона видимости</label>
+    <button id="vsClose">Снять выделение</button>
+  </div>
+  <div class="tip" id="tip" role="tooltip" hidden></div>
+
+  <aside class="panel" id="panel" aria-live="polite">
+    <div class="panel-top" id="pTop"></div>
+    <div class="panel-body" id="pBody"></div>
+    <div class="panel-foot" id="pFoot" hidden></div>
+  </aside>
+
+  <section class="gallery" id="gallery" hidden>
+    <div class="g-head">
+      <h1>Галерея</h1>
+      <div class="tabs" id="gTabs" role="group" aria-label="Фильтр"></div>
+    </div>
+    <div class="g-grid" id="gGrid"></div>
+    <p class="g-empty" id="gEmpty" hidden></p>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="jserr" id="jsErr" hidden></div>
+<div class="lightbox" id="lightbox" hidden>
+  <img id="lbImg" alt="">
+  <p id="lbCap"></p>
+  <button id="lbX" aria-label="Закрыть">Закрыть</button>
+</div>
+
+<script src="vendor/maplibre-gl.js"></script>
+<script src="vendor/maplibre-contour.min.js"></script>
+<script src="js/key.js?v=20261118d"></script>
+<script src="data/base.js?v=20261118d"></script>
+<script src="data/epochs.js?v=20261118d"></script>
+<script src="data/labels.js?v=20261118d"></script>
+<script src="data/media.js?v=20261118d"></script>
+<script src="data/threats.js?v=20261118d"></script>
+<script src="data/views.js?v=20261118d"></script>
+<script src="data/open.js?v=20261118d"></script>
+<script src="data/planes.js?v=20261118d"></script>
+<script src="js/stories-data.js?v=20261118d"></script>
+<script src="js/stories-extra.js?v=20261118d"></script>
+<script src="js/config.js?v=20261118d"></script>
+<script src="js/viewshed.js?v=20261118d"></script>
+<script src="js/app.js?v=20261118d"></script>
+<script src="js/clouds.js?v=20261118d"></script>
+<script src="js/intro.js?v=20261118d"></script>
+</body>
+</html>
