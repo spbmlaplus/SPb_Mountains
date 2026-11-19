@@ -583,6 +583,61 @@ function titleOf(key, p, f){
    Панель: общий каркас
    ========================================================= */
 const pTop = $('pTop'), pBody = $('pBody'), pFoot = $('pFoot');
+const panelEl = $('panel'), panelGrab = $('pGrab'), stage = panelEl.parentElement;
+const mobilePanel = matchMedia('(max-width: 820px)');
+const mountPanelActive = () => mobilePanel.matches && body.dataset.view === 'mount' && !body.classList.contains('panel-off');
+let panelCollapsed = false, panelTouch = null;
+
+function setPanelCollapsed(collapsed){
+  panelCollapsed = collapsed;
+  if(collapsed && panelEl.contains(document.activeElement)) panelGrab.focus({preventScroll:true});
+  body.classList.toggle('panel-collapsed', collapsed);
+  panelGrab.setAttribute('aria-expanded', String(!collapsed));
+  panelGrab.setAttribute('aria-label', collapsed ? 'Показать описание' : 'Свернуть описание');
+}
+function endPanelTouch(){
+  panelTouch = null;
+  body.classList.remove('panel-dragging');
+  stage.style.removeProperty('--panel-drag');
+}
+panelGrab.addEventListener('click', () => setPanelCollapsed(!panelCollapsed));
+panelEl.addEventListener('touchstart', e => {
+  if(!mountPanelActive()) return;
+  if(e.touches.length !== 1){ endPanelTouch(); return; }
+  // Жест из текста начинается только у верхней границы прокрутки.
+  if(pBody.contains(e.target) && pBody.scrollTop > 1) return;
+  const touch = e.touches[0];
+  panelTouch = {x:touch.clientX, y:touch.clientY, id:touch.identifier, dragging:false};
+}, {passive:true});
+panelEl.addEventListener('touchmove', e => {
+  if(!panelTouch) return;
+  if(e.touches.length !== 1 || !e.cancelable){ endPanelTouch(); return; }
+  const touch = e.touches[0];
+  if(touch.identifier !== panelTouch.id) return;
+  const dx = touch.clientX - panelTouch.x, dy = touch.clientY - panelTouch.y;
+  if(!panelTouch.dragging){
+    if(Math.max(Math.abs(dx), Math.abs(dy)) < 5) return;
+    if(Math.abs(dx) >= Math.abs(dy) || (panelCollapsed ? dy >= 0 : dy <= 0)){ endPanelTouch(); return; }
+    panelTouch.dragging = true;
+    body.classList.add('panel-dragging');
+  }
+  e.preventDefault();
+  stage.style.setProperty('--panel-drag', `${dy}px`);
+}, {passive:false});
+panelEl.addEventListener('touchend', e => {
+  if(!panelTouch) return;
+  const touch = Array.from(e.changedTouches).find(t => t.identifier === panelTouch.id);
+  if(!touch) return;
+  const dy = touch.clientY - panelTouch.y;
+  const commit = panelTouch.dragging && (panelCollapsed ? dy <= -48 : dy >= 48);
+  // Сначала возвращаем переход, чтобы панель плавно дошла до конечного положения.
+  endPanelTouch();
+  if(commit) setPanelCollapsed(!panelCollapsed);
+});
+panelEl.addEventListener('touchcancel', endPanelTouch);
+mobilePanel.addEventListener('change', () => { endPanelTouch(); setPanelCollapsed(false); });
+new ResizeObserver(() => { if(mountPanelActive()) map.resize(); }).observe($('map'));
+
 function panel(top, html, foot){
   pTop.innerHTML = top; pBody.innerHTML = html; pBody.scrollTop = 0;
   pFoot.hidden = !foot; pFoot.innerHTML = foot || '';
@@ -1535,6 +1590,7 @@ function route(){
   const parts = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/').filter(Boolean), v = parts[0] || 'home';
   const view = v === 'story' ? 'story' : v === 'map' ? 'map' : v === 'views' ? 'views' : v === 'view' ? 'view' : v === 'mounts' ? 'mounts' : v === 'mount' ? 'mount' : v === 'gallery' ? 'gallery' : 'home';
   document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === view || (a.dataset.nav === 'home' && view === 'story') || (a.dataset.nav === 'views' && view === 'view') || (a.dataset.nav === 'mounts' && view === 'mount')));
+  endPanelTouch(); setPanelCollapsed(false);
   body.dataset.view = view; card = null; tip.hidden = true;
   $('gallery').hidden = view !== 'gallery';
   if(view !== 'view') whenReady(clearViewshed);
