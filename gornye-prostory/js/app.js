@@ -609,7 +609,7 @@ let scene3dState = 0;   // 0 — не грузили, 1 — грузится, 2 
 function load3D(){
   if(scene3dState) return; scene3dState = 1;
   const add = src => new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(src); document.body.appendChild(s); });
-  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123d')).then(() => whenReady(() => {
+  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123e')).then(() => whenReady(() => {
     scene3dState = 2;
     if(window.GP3D && !map.getLayer('scene3d')) try{ map.addLayer(GP3D.layer, map.getLayer('infra-place') ? 'infra-place' : undefined); if(GP3D._pending) GP3D.setRoute(...GP3D._pending); map.triggerRepaint(); }catch(e){ console.warn('[3D]', e); }
   })).catch(e => console.warn('[3D] не загрузилось:', e));
@@ -965,9 +965,11 @@ function applyStep(id, st){
   });
 }
 // трек маршрута в GPX — для навигатора или приложения вроде OsmAnd / Strava
+const TRAIL_NAME = 'Большая горная тропа';
 function routeGpx(name){
-  const f = (D.routes?.features || []).find(x => x.properties.name === name); if(!f) return;
-  const g = f.geometry, lines = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
+  // Большая горная тропа хранится отрезками (слой trail) — в GPX каждый отрезок идёт своим сегментом трека
+  const fs = name === TRAIL_NAME ? (D.trail?.features || []) : [(D.routes?.features || []).find(x => x.properties.name === name)].filter(Boolean); if(!fs.length) return;
+  const lines = fs.flatMap(f => { const g = f.geometry; return !g ? [] : g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]; });
   const x = s => String(s).replace(/[<&>"]/g, c => ({'<':'&lt;','&':'&amp;','>':'&gt;','"':'&quot;'})[c]);
   const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Горные просторы" xmlns="http://www.topografix.com/GPX/1/1">\n<metadata><name>${x(name)}</name></metadata>\n<trk><name>${x(name)}</name>\n` +
     lines.map(l => `<trkseg>${l.map(c => `<trkpt lat="${c[1].toFixed(6)}" lon="${c[0].toFixed(6)}"/>`).join('')}</trkseg>`).join('\n') + `\n</trk>\n</gpx>\n`;
@@ -1003,6 +1005,7 @@ function renderStory(id, n){
     <p class="over">Глава ${si + 1} из ${STORIES.length}</p>
     <h1 class="h-step">${esc(s.title)}</h1>
     ${s.lead ? `<p class="lead">${esc(s.lead)}</p>` : ''}
+    ${id === 'trail' ? `<p><button type="button" class="btn btn-gpx" data-gpx="${TRAIL_NAME}">Скачать всю тропу для GPS (.gpx)</button></p>` : ''}
     ${sections}`,
     `<a class="btn" ${pv ? `href="#/story/${pv.id}/1"` : 'aria-disabled="true"'} id="stPrev">← Глава</a>
      <span class="count">Глава ${si + 1} / ${STORIES.length}</span>
@@ -1131,6 +1134,7 @@ function openObject(key, i, fly){
     ${table(I.rows(p, key))}
     ${infoKey(key) === 'dominants' ? domSeenBlock(f) : ''}
     ${key === 'routes' && p.name ? `<p><button type="button" class="btn btn-gpx" data-gpx="${esc(p.name)}">Скачать трек для GPS (.gpx)</button></p>` : ''}
+    ${key === 'trail' ? `<p><button type="button" class="btn btn-gpx" data-gpx="${TRAIL_NAME}">Скачать всю тропу для GPS (.gpx)</button></p>` : ''}
     ${ex ? `<p class="note">${esc(ex)}</p>` : ''}`,
     `<button class="btn" id="cardZoom">Приблизить</button><span class="count"></span><button class="btn btn-dark" id="cardSave" data-save="${s}:${i}">${saved ? 'Сохранено' : 'Сохранить'}</button>`);
   $('cardBack').onclick = closeCard;
@@ -1788,7 +1792,8 @@ function renderRoutes(){
     <h1>Маршруты</h1>
     <p class="lead">Большая горная тропа и девять наших треков по высотам вокруг города.</p>
     <p>Оранжевые линии — тропы и веломаршруты: где их гуще, туда ходят и ездят чаще. Розовым выделены наши маршруты.</p>
-    <a class="row" href="#/story/trail/1"><span class="row-main"><b>Большая горная тропа</b><small>Как команда МЛА+ нашла эти виды и как их связать в один путь</small></span></a>
+    <div class="route-row"><a class="row" href="#/story/trail/1"><span class="row-main"><b>Большая горная тропа</b><small>Как команда МЛА+ нашла эти виды и как их связать в один путь</small></span></a>
+      <button type="button" class="btn btn-gpx" data-gpx="${TRAIL_NAME}" title="Скачать всю тропу для навигатора">GPX</button></div>
     <h2>Наши треки <span class="h-n">${R.length}</span></h2>
     <div class="rows">${rows}</div>`);
   // треки — тонкими бледными линиями, без тепловой карты (она слишком ярко «горела» поверх спутника)

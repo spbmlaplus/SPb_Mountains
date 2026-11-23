@@ -172,7 +172,8 @@
   // Фигурки — в масштабе домов: ×2 к настоящему росту (человек ≈ 3,5 м против домов в 15–25 м), без увеличения при отдалении.
   // Появляются, только когда карту приблизили к месту. Каждая — только у «своего» места:
   // кони — у конных клубов, мотоциклы — у мототрасс, лыжники — на склонах, параплан — у парадромов и парапланерных клубов.
-  const FIG = 2;
+  const FIG = 2, FIG_BIG = {'Конный клуб':4, 'велосипед':4, 'пешком':4};   // кони и велосипедисты на маршрутах — крупнее, чтобы их было видно
+  const figOf = kind => FIG_BIG[kind] || FIG;
   const KINDS = {
     'Парапланеризм':{make:paraglider, minz:14, ok:p => /парадром|параплан|парафойл|paraglid|крыло ветра|aerotandem/i.test(p.name || '')},   // без парашютных клубов, аэроклубов и авиамоделистов
     'Конный клуб':{make:horseRider, minz:15, road:['path','track','service','minor'], speed:3.5},
@@ -210,6 +211,21 @@
     return {lng:p[0] + (q[0] - p[0]) * u, lat:p[1] + (q[1] - p[1]) * u, yaw:Math.atan2(back ? -dy : dy, back ? -dx : dx)};
   }
 
+  // отрезки наших маршрутов и тропы — считаются один раз; на каждые ~2,5 км пути — один ездок
+  let TRACKS = null;
+  function trackPaths(){
+    if(TRACKS) return TRACKS; TRACKS = [];
+    const R = (window.GP && window.GP.ROUTES) || {}, mk = line => { if(!line || line.length < 2) return null; const cum = [0];
+      for(let j = 1; j < line.length; j++) cum.push(cum[j - 1] + Math.hypot((line[j][0] - line[j - 1][0]) * KX, (line[j][1] - line[j - 1][1]) * KY));
+      return cum[cum.length - 1] > 50 ? {pts:line, cum, L:cum[cum.length - 1]} : null; };
+    const add = (layer, id, line, walk) => { const P = mk(line); if(P) TRACKS.push({layer, id, P, walk, speed:walk ? 1.4 : 5.5, n:Math.max(1, Math.round(P.L / 2500))}); };
+    (D.routes?.features || []).forEach((f, i) => { const g = f.geometry; if(!g) return; const walk = /^Пешком/.test((R[f.properties.name] || [''])[0]);
+      (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('routes', 'r' + i + '.' + k, l, walk)); });
+    (D.trail?.features || []).forEach((f, i) => { const g = f.geometry; if(!g) return;
+      (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('trail', 't' + i + '.' + k, l, false)); });
+    return TRACKS;
+  }
+  function walker(){ const P = person({body:M.white}), g = new T.Group(); g.add(P.g); return {g, P}; }
   function pickActors(){
     const z = map.getZoom(), b = map.getBounds(), c = map.getCenter(), cap = innerWidth < 820 ? 6 : 14;
     // каждый персонаж — только в своей теме: досуг — в «Горах сейчас», гуляющие — у усадеб
@@ -217,14 +233,20 @@
     if(on.includes('leisure')) (D.leisure?.features || []).forEach((f, i) => { const k = KINDS[f.properties.kind]; if(!k || z < k.minz || (k.ok && !k.ok(f.properties))) return;
       const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'l' + i, kind:f.properties.kind, x, y}); });
     if(z >= 15.5 && on.includes('estate')) (D.estate?.features || []).forEach((f, i) => { const t = f.properties.type; if(t === 'Дача' || t === 'Дом') return; const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'e' + i, kind:'усадьба', x, y}); });
+    // велосипедисты (и пешеходы на пеших маршрутах) едут по нашим маршрутам и Большой горной тропе
+    let nt = 0;
+    if(z >= 14.5 && (on.includes('routes') || on.includes('trail'))) trackPaths().forEach(T0 => { if(!on.includes(T0.layer)) return;
+      for(let j = 0; j < T0.n; j++){ const off = j / T0.n * 2 * T0.P.L, q = along(T0.P, performance.now() / 1000 * T0.speed + off);
+        if(nt < (innerWidth < 820 ? 5 : 10) && b.contains([q.lng, q.lat])){ nt++; want.push({id:T0.id + '_' + j, kind:T0.walk ? 'пешком' : 'велосипед', x:q.lng, y:q.lat, track:{P:T0.P, off, speed:T0.speed}}); } } });
     want.sort((a, q) => Math.hypot(a.x - c.lng, a.y - c.lat) - Math.hypot(q.x - c.lng, q.y - c.lat));
     const keep = new Set(want.slice(0, cap).map(w => w.id));
     for(let k = actors.length - 1; k >= 0; k--) if(!actors[k].route && !keep.has(actors[k].id)){ drop(actors[k].w); actors.splice(k, 1); }
     want.slice(0, cap).forEach(w => { if(actors.some(a => a.id === w.id)) return;
-      const m = w.kind === 'усадьба' ? stroller() : KINDS[w.kind].make(), wrap = upright(m.g); wrap.userData.yaw.add(shadowDisc(w.kind === 'Парапланеризм' ? 0 : w.kind === 'Конный клуб' ? 1.3 : 0.5));
-      wrap.scale.setScalar(FIG); root.add(wrap); actors.push({id:w.id, kind:w.kind, x:w.x, y:w.y, m, w:wrap, ph:Math.random() * 100, tries:0}); });
+      const m = w.kind === 'усадьба' ? stroller() : w.kind === 'велосипед' ? cyclist() : w.kind === 'пешком' ? walker() : KINDS[w.kind].make(), wrap = upright(m.g);
+      wrap.userData.yaw.add(shadowDisc(w.kind === 'Парапланеризм' ? 0 : w.kind === 'Конный клуб' ? 1.3 : w.kind === 'велосипед' ? 0.7 : 0.5));
+      wrap.scale.setScalar(figOf(w.kind)); root.add(wrap); actors.push({id:w.id, kind:w.kind, x:w.x, y:w.y, m, w:wrap, ph:Math.random() * 100, tries:0, track:w.track}); });
     // дорогу ищем, когда её плитки уже загрузились (не нашли — попробуем на следующем круге, всего до 6 раз)
-    actors.forEach(a => { if(a.route || a.path !== undefined) return; const spec = a.kind === 'усадьба' ? STROLL : KINDS[a.kind]; if(!spec || !spec.road){ a.path = null; return; }
+    actors.forEach(a => { if(a.route || a.track || a.path !== undefined) return; const spec = a.kind === 'усадьба' ? STROLL : KINDS[a.kind]; if(!spec || !spec.road){ a.path = null; return; }
       if(paths.has(a.id)){ a.path = paths.get(a.id); return; }
       const P = findPath(a.x, a.y, spec.road, a.kind === 'усадьба' ? 150 : 220); if(P){ paths.set(a.id, P); a.path = P; } else if(++a.tries >= 6) a.path = null; });
   }
@@ -249,6 +271,9 @@
       if(R.walk) walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.P.L.rotation.z = 1.0 + Math.sin(t / 120) * 0.4; m.P.R.rotation.z = 1.0 - Math.sin(t / 120) * 0.4; }
       return {lng:p[0] + (q[0] - p[0]) * u, lat:p[1] + (q[1] - p[1]) * u, h:0, yaw:Math.atan2((q[1] - p[1]) * 2, q[0] - p[0])};
     }
+    if(a.track){ const q = along(a.track.P, t / 1000 * a.track.speed + a.track.off); a.x = q.lng; a.y = q.lat;   // позиция нужна и для проверки «в кадре»
+      if(a.kind === 'пешком') walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.P.L.rotation.z = 1.0 + Math.sin(t / 120) * 0.4; m.P.R.rotation.z = 1.0 - Math.sin(t / 120) * 0.4; }
+      return {...q, h:0}; }
     if(a.kind === 'Парапланеризм'){ const w = t / 14000 + ph, r = 70;   // кружит над стартом в ~50 м над землёй, с креном в вираже
       return {dx:Math.cos(w) * r, dy:Math.sin(w) * r, h:50 + Math.sin(t / 2100 + ph) * 4, yaw:w + Math.PI / 2, tilt:-0.22 + Math.sin(t / 1300 + ph) * 0.06}; }
     if(a.kind === 'Горнолыжный курорт'){ const c = ((t / 9000 + ph) % 1), down = c < 0.7, u = down ? c / 0.7 : 1 - (c - 0.7) / 0.3;   // съезд по склону и подъём
@@ -301,5 +326,5 @@
       // (только если хоть одна фигурка в кадре — иначе карта стоит и не грузит видеокарту)
       if(actors.length && !repaintT && document.visibilityState === 'visible' && (() => { const b = map.getBounds(); return actors.some(a => a.route || b.contains([a.x, a.y])); })()) repaintT = setTimeout(() => { repaintT = 0; map.triggerRepaint(); }, 33);
     }};
-  window.GP3D = {layer, setRoute:(f, walk) => { if(root) setRoute(f, walk); else window.GP3D._pending = [f, walk]; }};
+  window.GP3D = {layer, count:() => actors.map(a => a.kind), setRoute:(f, walk) => { if(root) setRoute(f, walk); else window.GP3D._pending = [f, walk]; }};
 })();
