@@ -70,8 +70,8 @@
     // на рабочей карте облака не рисуем — экономим видеокарту
     const b = document.body.classList;
     if(b.contains('clouds-gone')){
-      if(!idleCleared){ gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); idleCleared = true; }
-      requestAnimationFrame(frame); return;
+      // облака ушли насовсем — очищаем холст и останавливаем цикл, чтобы не тратить кадры
+      gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); idleCleared = true; return;
     }
     idleCleared = false;
     clear += (clearTarget - clear)*0.02;

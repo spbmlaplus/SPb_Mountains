@@ -6,7 +6,7 @@ const STEPS = window.GP_STEPS || {}, STATS = D._stats || {};
 // глава «Сегодня»: после шага «Наши маршруты» — карточка-история для каждого маршрута экспедиции
 (function(){ const T = STEPS.today; if(!T) return; const i = T.findIndex(s => s.title === 'Наши маршруты'); if(i < 0) return;
   const R = (D.routes?.features || []).map(f => { const p = f.properties, txt = ROUTES[p.name] || [p.description || ''];
-    return {title:p.name, map:T[i].map, route:p.name, text:txt, look:'Розовым — этот маршрут, по нему едет наш велосипедист. Квадратики — наши снимки с маршрута: нажмите, чтобы открыть паспорт точки.'}; });
+    return {title:p.name, map:T[i].map, route:p.name, text:txt, look:'Розовым — этот маршрут, по нему едет наш велосипедист. Квадратики — наши снимки с маршрута.'}; });
   T.splice(i + 1, 0, ...R); })();
 const $ = id => document.getElementById(id);
 const body = document.body;
@@ -28,8 +28,10 @@ const TILES = 'https://spbmlaplus.github.io/spb_mountains_tiles';
    ========================================================= */
 const HOME = {center:[30.32, 59.93], zoom:8.6};
 // 3D включается кнопкой. Перепад высот всего 0–176 м, поэтому рельеф сильно растягиваем, в городе — меньше
-const EXAG = 6, EXAG_CITY = 3;
-const exagAt = z => z <= 10 ? EXAG : z >= 14 ? EXAG_CITY : EXAG + (EXAG_CITY - EXAG) * (z - 10) / 4;
+// усиление рельефа: на общем виде сильное, чтобы горы читались; к уровню домов — почти реальное,
+// иначе раздутые бугры модели рельефа протыкают здания и насыпи у мостов
+const EXAG = 6, EXAG_CITY = 1.15;
+const exagAt = z => z <= 10 ? EXAG : z >= 13.5 ? EXAG_CITY : EXAG + (EXAG_CITY - EXAG) * (z - 10) / 3.5;
 let base = 'sat', is3D = false;
 /* Ключ Mapbox (pk.…) — js/key.js. Если Mapbox отвечает (ключ живой, лимит не исчерпан), спутник берётся у него, иначе Esri.
    Высоты всегда открытые (Terrarium, AWS): они стабильно доступны и работают без ключа. */
@@ -74,8 +76,12 @@ const map = new maplibregl.Map({
     ]
   },
   ...HOME, pitch:0, bearing:0, minZoom:7.5, maxZoom:17.5, maxPitch:75,
-  attributionControl:{compact:true}
+  attributionControl:{compact:true},
+  // на телефонах с экраном ×3 рисуем в ×2 — разницы не видно, а кадров вдвое больше
+  pixelRatio:Math.min(window.devicePixelRatio || 1, 2),
+  fadeDuration:150
 });
+map.on('zoomend', () => { const e = exagAt(map.getZoom()); if(is3D && terrainOk && Math.abs(e - curExag) > 0.05){ curExag = e; try{ map.setTerrain({source:demSrc, exaggeration:e}); }catch(_){} } });   // точное значение — в конце приближения
 window.GPMap = map;
 if(TOKEN) fetch(`https://api.mapbox.com/v4/mapbox.satellite/9/297/147.jpg90?access_token=${TOKEN}`).then(r => { if(!r.ok) throw r.status;
   map.once('idle', () => { try{ map.getSource('sat').setTiles([`https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=${TOKEN}`]); }catch(_){} });
@@ -87,7 +93,7 @@ if(TOKEN) fetch(`https://api.mapbox.com/v4/mapbox.satellite/9/297/147.jpg90?acce
     fc.features.forEach(f => f.geometry && walk(f.geometry.coordinates, x)); const a = (x[2] - x[0]) * (x[3] - x[1]); if(a > best && a < 40){ best = a; bb = x; } });
   if(bb){ const dx = (bb[2] - bb[0]) * 0.08, dy = (bb[3] - bb[1]) * 0.08; map.setMaxBounds([[bb[0] - dx, bb[1] - dy], [bb[2] + dx, bb[3] + dy]]); }
 })();
-map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'bottom-left');
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'bottom-right');
 map.addControl(new maplibregl.ScaleControl({unit:'metric', maxWidth:110}), 'bottom-left');
 let demFails = 0, terrainOk = true, satFails = 0; const demSrc = 'dem';
 map.on('error', e => {
@@ -98,7 +104,37 @@ map.on('error', e => {
 const HOVER = ['boolean',['feature-state','hover'],false];
 const hov = (a, b) => ['case', HOVER, b, a];
 const GROUPS = {}, CLICK = [], THEMED = [];
-const SRC = {dom_threat:'dominants', law_lost:'law_views', law_ok:'law_views'};
+/* Новостройки — сами дома (контуры из dom_poly) с данными доминанты: построена, строится или планируется.
+   «Топ» — самые заметные: высокие и видные с наибольшего числа смотровых точек. */
+const NEWB_TOP = 12;
+(() => {
+  // уточнённые статусы: в выгрузке ДОМ.РФ дома помечены «потенциальными», но по открытым источникам уже сданы (проверено 20.11.2026)
+  const BUILT = [/LEGENDA Комендантского/i, /Ultra City/i];
+  (D.dominants?.features || []).forEach(f => { const p = f.properties; if(p.class === 'Новая' && p.status !== 'существующая' && BUILT.some(r => r.test(p.name || ''))){ p.status = 'существующая'; p.status_note = 'сдан, по открытым источникам'; } });
+  const byI = {}; (D.dominants?.features || []).forEach(f => byI[f.properties.i] = f);
+  const isNew = f => f && f.properties.class === 'Новая';
+  const score = p => (p.vis_n || 0) * (p.height_m || 0);
+  const ranked = (D.dominants?.features || []).filter(f => isNew(f) && f.properties.name).sort((a, b) => score(b.properties) - score(a.properties));
+  const topRank = {}; ranked.slice(0, NEWB_TOP).forEach((f, k) => topRank[f.properties.i] = k + 1);
+  (D.dominants?.features || []).forEach(f => { if(topRank[f.properties.i]) f.properties.top_new = topRank[f.properties.i]; });
+  D.newb = {type:'FeatureCollection', features:(D.dom_poly?.features || []).filter(f => isNew(byI[f.properties.i]))
+    .map(f => ({type:'Feature', properties:{...byI[f.properties.i].properties}, geometry:f.geometry}))};
+  D.newb_pt = {type:'FeatureCollection', features:(D.dominants?.features || []).filter(isNew)};
+  // самые активные стройки — пузыри по районам: дом относится к ближайшему району в пределах 4 км
+  const AREAS = [['Мурино',30.45,60.05],['Новое Девяткино',30.48,60.065],['Кудрово',30.51,59.905],['Янино',30.56,59.95],['Бугры',30.39,60.07],['Парголово',30.27,60.08],
+    ['Шушары',30.40,59.80],['Пулково',30.33,59.815],['Купчино',30.38,59.835],['Рыбацкое',30.50,59.835],['Обухово',30.45,59.87],['Колпино',30.59,59.75],['Лахта',30.18,60.0],
+    ['Комендантский',30.25,60.01],['Каменка',30.25,60.035],['Юго-Запад',30.18,59.85],['Новоселье',30.10,59.82],['Горелово',30.13,59.77],['Красное Село',30.08,59.73],['Пушкин',30.40,59.72],
+    ['Сертолово',30.20,60.14],['Всеволожск',30.64,60.02],['Охта',30.45,59.94],['Стрельна',30.03,59.85],['Петергоф',29.90,59.88],['Сестрорецк',29.97,60.10],['Намыв Васильевского',30.21,59.945],
+    ['Кировский',30.26,59.88],['Московский',30.32,59.86],['Полюстрово',30.42,59.98],['Выборгская сторона',30.35,59.99]];
+  const km = (a, b) => Math.hypot((a[0] - b[0]) * 55.6, (a[1] - b[1]) * 111.2);
+  const grp = {};
+  D.newb_pt.features.forEach(f => { const c = f.geometry.coordinates; let best = null, bd = 4;
+    AREAS.forEach(([n, x, y]) => { const d = km(c, [x, y]); if(d < bd){ bd = d; best = n; } });
+    if(!best) return; const g = grp[best] = grp[best] || {n:0, x:0, y:0, plan:0}; g.n++; g.x += c[0]; g.y += c[1]; if(f.properties.status !== 'существующая') g.plan++; });
+  D.newb_cl = {type:'FeatureCollection', features:Object.entries(grp).filter(([, g]) => g.n >= 12).sort((a, b) => b[1].n - a[1].n)
+    .map(([name, g]) => ({type:'Feature', properties:{name, n:g.n, plan:g.plan, label:`${name}\n${g.n} ${plural(g.n, 'дом', 'дома', 'домов')}${g.plan ? `, ${g.plan} в планах` : ''}`}, geometry:{type:'Point', coordinates:[g.x / g.n, g.y / g.n]}}))};
+})();
+const SRC = {dom_threat:'newb', law_lost:'law_views', law_ok:'law_views'};
 const srcOf = k => SRC[k] || k;
 // значение зависит от подложки: [для схемы, для спутника]
 const T = (light, dark) => ({_t:[light, dark]});
@@ -139,17 +175,20 @@ function triIcon(name, fill, stroke){ icon(name, 44, (g, s) => { g.beginPath(); 
 const TIERC = ['#769686', '#92BAA8', '#C0DFCA', '#FBE8B9'];   // сцена, партер, бельэтаж, балкон — как на рисунке амфитеатра
 /* Классы по уникальным значениям: [значение, цвет, знак, множитель размера] */
 const CLS = {
-  estate:{field:'type', list:[['Дворец','#B8860B','diamond',1.3],['Усадьба','#E0A526','diamond',1.1],['Мыза','#C9873A','square',1],['Вилла','#E9C46A','dot',0.95],
-    ['Особняк','#A97C50','square',0.95],['Дом','#D8C08A','square',0.8],['Дача','#F2D58C','dot',0.72]]},
+  // типы усадеб — разными оттенками, чтобы их легко различать на карте и в легенде
+  estate:{field:'type', list:[['Дворец','#E8B400','diamond',1.3],['Усадьба','#E8742A','diamond',1.1],['Мыза','#B5523B','square',1],['Вилла','#2FA39A','dot',0.95],
+    ['Особняк','#8A6FD8','square',0.95],['Дом','#4F8FD0','square',0.8],['Дача','#F4E3A8','dot',0.5]]},
   leisure:{field:'kind', list:[['Горнолыжный курорт','#4F8FD0','tri',1.15],['Парапланеризм','#8E6FD8','tri',1],['Конный клуб','#E15989','dot',0.85],
     ['Мотокросс','#E5383B','square',0.9],['Гольф-клуб','#2F8F5B','dot',0.9]]},
   sectors:{field:'type', list:[['сцена',TIERC[0],'fill',1],['партер',TIERC[1],'fill',1],['бельэтаж',TIERC[2],'fill',1],['балкон',TIERC[3],'fill',1]]},
   mount:{field:'type', list:[['гора','#1E2B36','tri',1.35],['возвышенность','#4E6B7E','tri',0.95],['холм','#8FA9B8','tri',0.62]]},
   vp_old:{field:'todo', list:[['охранять','#E5383B','none',1],['формировать','#E8A317','none',1],['расчищать','#4F8FD0','none',1]]},
+  dom_threat:{field:'status', list:[['существующая','#E5383B','fill',1],['строящаяся','#F08A24','fill',1],['потенциальная (дом.рф)','#B04FD6','fill',1]]},
   oopt:{field:'kind', list:[['заказник','#2F8F5B','fill',1],['памятник природы','#6DBB8A','fill',1],['Охраняемый природный ландшафт','#9CCFAE','fill',1],['природный парк','#1F6B43','fill',1]]}
 };
 const clsOff = {}; Object.keys(CLS).forEach(k => clsOff[k] = new Set());
-const clsName = (k, v) => k === 'sectors' || k === 'mount' || k === 'vp_old' ? cap(v) : v;
+const BASEF = {'lab-estate':['!=',['get','type'],'Дача'], 'lab-estate-d':['==',['get','type'],'Дача']};
+const clsName = (k, v) => k === 'dom_threat' ? ({'существующая':'Построены','строящаяся':'Строятся','потенциальная (дом.рф)':'Планируются'})[v] || v : k === 'sectors' || k === 'mount' || k === 'vp_old' ? cap(v) : v;
 /* Иконка-«рябь»: мягкие концентрические круги и ядро со знаком (как в инфографике-референсе) */
 function ripple(name, color, glyph = 'dot', ring = 1){
   if(map.hasImage(name)) return name;
@@ -202,14 +241,15 @@ map.once('style.load', () => {
   /* --- основа --- */
   add('mask', [{id:'mask', type:'fill', paint:{'fill-color':T('#ffffff', '#060d13'), 'fill-opacity':T(0.6, 0.5)}}]);
   // дома в 3D: коробки по высоте из OpenStreetMap, проявляются с 13-го масштаба
-  map.addLayer(resolve({id:'bld', type:'fill-extrusion', source:'omt', 'source-layer':'building', minzoom:13,
+  // дома OSM выше 250 м (Лахта-центр) не рисуем — вместо них подробная модель из scene3d.js
+  map.addLayer(resolve({id:'bld', type:'fill-extrusion', source:'omt', 'source-layer':'building', minzoom:13, filter:['<',['coalesce',['get','render_height'],0],250],
     paint:{'fill-extrusion-color':['interpolate',['linear'],['coalesce',['get','render_height'],9],3,'#d8d0c2',20,'#e6dccb',45,'#f0c9cf',90,'#e98fac'],
       'fill-extrusion-height':['interpolate',['linear'],['zoom'],13,0,14.2,['coalesce',['get','render_height'],9]],
       'fill-extrusion-base':['interpolate',['linear'],['zoom'],13,0,14.2,['coalesce',['get','render_min_height'],0]],
       'fill-extrusion-opacity':T(0.8, 0.88), 'fill-extrusion-vertical-gradient':true}}));
   add('isolines', [
-    {id:'iso', type:'line', minzoom:10.5, ...(CONTOURS ? {maxzoom:11} : {}), filter:['!=',['%',['to-number',['get','ELEV'],1],25],0], paint:{'line-color':T('#8d6f5c', C.cream),'line-width':0.7,'line-opacity':T(0.7, 0.45)}},
-    {id:'iso-i', type:'line', ...(CONTOURS ? {maxzoom:11} : {}), filter:['==',['%',['to-number',['get','ELEV'],1],25],0], paint:{'line-color':T('#7d5e4b', C.cream),'line-width':['interpolate',['linear'],['zoom'],8,0.8,13,1.5],'line-opacity':T(0.85, 0.62)}}]);
+    {id:'iso', type:'line', minzoom:8, ...(CONTOURS ? {maxzoom:11} : {}), filter:['!=',['%',['to-number',['get','ELEV'],1],25],0], paint:{'line-color':T('#8d6f5c', C.cream),'line-width':['interpolate',['linear'],['zoom'],8,0.5,11,0.9],'line-opacity':['interpolate',['linear'],['zoom'],8,T(0.45, 0.35),10.5,T(0.75, 0.55)]}},
+    {id:'iso-i', type:'line', ...(CONTOURS ? {maxzoom:11} : {}), filter:['==',['%',['to-number',['get','ELEV'],1],25],0], paint:{'line-color':T('#7d5e4b', C.cream),'line-width':['interpolate',['linear'],['zoom'],8,1.2,13,2],'line-opacity':T(0.95, 0.85)}}]);   // изолинии заметнее уже на общем виде
   // изолинии 5 м поверх спутника (с 11-го масштаба; утолщённые — каждые 25 м)
   if(CONTOURS){
     [{id:'c5', type:'line', source:'contours', 'source-layer':'contours', minzoom:11, filter:['==',['get','level'],0],
@@ -242,18 +282,29 @@ map.once('style.load', () => {
     {id:k+'-l', type:'line', paint:{'line-color':col,'line-width':1.6}}], true));
   add('resettlement', [{id:'resettlement-f', type:'fill', paint:{'fill-color':C.sand,'fill-opacity':hov(0.5, 0.75)}},
                        {id:'resettlement-l', type:'line', paint:{'line-color':T(C.brown, C.cream),'line-width':0.8,'line-opacity':0.8}}], true);
-  add('maki_selki', [{id:'maki_selki-f', type:'fill', paint:{'fill-color':C.brown,'fill-opacity':hov(0.3, 0.5)}},
-                     {id:'maki_selki-p', type:'fill', paint:{'fill-pattern':ensurePattern('hatch', C.yellow),'fill-opacity':0.85}},
-                     {id:'maki_selki-l', type:'line', paint:{'line-color':C.yellow,'line-width':1.4}}], true);
+  // мяки и сельки — розовая заливка; подпись — финское имя и русское значение
+  add('maki_selki', [{id:'maki_selki-f', type:'fill', paint:{'fill-color':'#E86FA0','fill-opacity':hov(0.42, 0.62)}},
+                     {id:'maki_selki-l', type:'line', paint:{'line-color':'#FFB3D1','line-width':1.2}}], true);
+  if(D.maki_selki){
+    const MK = window.GP.MAKI || {};
+    map.addSource('maki-pts', {type:'geojson', data:{type:'FeatureCollection', features:D.maki_selki.features.filter(f => f.properties.name).map(f => {
+      const nm = String(f.properties.name).trim(), ru = (MK[nm] || '').replace(/\s*\(.*$/, '');
+      return {type:'Feature', properties:{name:nm, ru:ru ? ru[0].toUpperCase() + ru.slice(1) : ''}, geometry:{type:'Point', coordinates:centroid(f.geometry)}}; })}});
+    map.addLayer(resolve({id:'lab-maki', type:'symbol', source:'maki-pts', minzoom:9.5, layout:{visibility:'none',
+      'text-field':['format',['get','name'],{'text-font':['literal',FONT_B]},'\n',{},['get','ru'],{'font-scale':0.82}],
+      'text-font':FONT_R,'text-size':['interpolate',['linear'],['zoom'],9.5,11,13,13.5],'text-max-width':11,'text-line-height':1.15,'text-padding':3},
+      paint:{'text-color':T('#7a1f48','#FFD3E6'),'text-halo-color':T('rgba(255,255,255,0.95)','rgba(6,12,18,0.85)'),'text-halo-width':1.4}}));
+    GROUPS.maki_selki.push('lab-maki');
+  }
   add('bubbles', [{id:'bubbles-f', type:'fill', paint:{'fill-color':C.red,'fill-opacity':hov(0.6, 0.85)}}], true);
   add('oopt', [{id:'oopt-f', type:'fill', paint:{'fill-color':C.green,'fill-opacity':hov(0.36, 0.55)}}, {id:'oopt-l', type:'line', paint:{'line-color':C.green,'line-width':1.6}}], true);
   add('zol', [{id:'zol-f', type:'fill', paint:{'fill-color':'#8CC9A2','fill-opacity':hov(0.3, 0.5)}}, {id:'zol-l', type:'line', paint:{'line-color':'#8CC9A2','line-width':1,'line-dasharray':[3,2]}}], true);
   add('law_relief', [{id:'law_relief-f', type:'fill', paint:{'fill-color':C.green,'fill-opacity':hov(0.12, 0.3)}},
                      {id:'law_relief-p', type:'fill', paint:{'fill-pattern':ensurePattern('hatch', C.green),'fill-opacity':0.9}},
                      {id:'law_relief-l', type:'line', paint:{'line-color':C.green,'line-width':1.4}}], true);
-  add('reserve', [{id:'reserve-f', type:'fill', paint:{'fill-color':C.field,'fill-opacity':hov(0.14, 0.4)}},
-                  {id:'reserve-p', type:'fill', paint:{'fill-pattern':ensurePattern('hatch', C.field),'fill-opacity':0.95}},
-                  {id:'reserve-l', type:'line', paint:{'line-color':C.field,'line-width':['interpolate',['linear'],['zoom'],8,0.4,12,1.6]}}], true);
+  // открытые пространства под угрозой — лёгкая полупрозрачная зелень без штриховки
+  add('reserve', [{id:'reserve-f', type:'fill', paint:{'fill-color':'#7BC86C','fill-opacity':hov(0.22, 0.42)}},
+                  {id:'reserve-l', type:'line', paint:{'line-color':'#9BE08A','line-opacity':0.75,'line-width':['interpolate',['linear'],['zoom'],8,0.3,12,1.1]}}], true);
   if(D._loss_bounds){
     map.addSource('loss', {type:'image', url:'media/loss.png', coordinates:D._loss_bounds});
     map.addLayer({id:'loss', type:'raster', source:'loss', layout:{visibility:'none'}, paint:{'raster-opacity':0.9,'raster-fade-duration':0}});
@@ -281,6 +332,15 @@ map.once('style.load', () => {
                    {id:'law_lost', type:'line', filter:['==',['get','state'],'Утр.'], paint:{'line-color':C.red,'line-width':hov(2.6, 4.4),'line-dasharray':[2,1.5]}}], true);
   add('walking', [{id:'walking-glow', type:'line', layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':T('#FC5200','#FF7A2E'),'line-width':['interpolate',['linear'],['zoom'],8,3,13,7],'line-blur':['interpolate',['linear'],['zoom'],8,2,13,5],'line-opacity':T(0.12, 0.16)}},
                   {id:'walking', type:'line', layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':T('#E84A00','#FFB27A'),'line-width':['interpolate',['linear'],['zoom'],8,0.7,13,1.6],'line-opacity':hov(0.38, 0.9)}}], true);
+  // плотность троп и наших треков: издалека — тепловое пятно (точки через каждые ~400 м линии), вблизи — сами линии.
+  // Источник пустой, точки считаются только при первом заходе в «Маршруты» (см. buildTrackHeat)
+  map.addSource('track-pts', {type:'geojson', data:{type:'FeatureCollection', features:[]}});
+  {
+    map.addLayer({id:'track-heat', type:'heatmap', source:'track-pts', maxzoom:12.5, layout:{visibility:'none'},
+      paint:{'heatmap-weight':['get','w'],'heatmap-radius':['interpolate',['linear'],['zoom'],8,6,12,18],'heatmap-intensity':['interpolate',['linear'],['zoom'],8,0.6,12,1.4],
+        'heatmap-color':['interpolate',['linear'],['heatmap-density'],0,'rgba(0,0,0,0)',0.15,'rgba(232,74,0,0.25)',0.4,'rgba(252,82,0,0.55)',0.7,'#FF9A3D',1,'#FFE3B0'],
+        'heatmap-opacity':['interpolate',['linear'],['zoom'],10.5,0.95,12.5,0]}});
+    GROUPS.track_heat = ['track-heat']; }
   add('routes', [{id:'routes-c', type:'line', layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':T('#fff', C.ink),'line-width':6}},
                  {id:'routes', type:'line', layout:{'line-join':'round'}, paint:{'line-color':C.pink,'line-width':hov(3, 4.5),'line-dasharray':[2.5,1.5]}}], true);
   add('trail', [{id:'trail-c', type:'line', layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':T('#fff', C.ink),'line-width':8}},
@@ -300,7 +360,7 @@ map.once('style.load', () => {
 
   /* --- затемнение вне зоны видимости --- */
   map.addSource('vs-out', {type:'geojson', data:{type:'FeatureCollection', features:[]}});
-  map.addLayer({id:'vs-out', type:'fill', source:'vs-out', paint:{'fill-color':'#05090d','fill-opacity':0.59}});
+  map.addLayer({id:'vs-out', type:'fill', source:'vs-out', paint:{'fill-color':'#05090d','fill-opacity':0.42}});   // невидимое с точки притушено, но остаётся различимым
   map.addSource('vs-ray', {type:'geojson', data:{type:'FeatureCollection', features:[]}});
   map.addLayer({id:'vs-ray', type:'line', source:'vs-ray', paint:{'line-color':C.pink,'line-width':2,'line-dasharray':[1,1.5]}});
   map.addSource('cone', {type:'geojson', data:{type:'FeatureCollection', features:[]}});
@@ -312,6 +372,9 @@ map.once('style.load', () => {
   /* --- застройка в зоне видимости --- */
   map.addSource('dom_poly', {type:'geojson', data:D.dom_poly || {type:'FeatureCollection', features:[]}});
   map.addLayer({id:'dom_poly', type:'fill', source:'dom_poly', minzoom:11, filter:['in',['get','i'],['literal',[]]], paint:{'fill-color':C.cream,'fill-opacity':0.95,'fill-outline-color':C.ink}});
+  // наведение на смотровую точку: контуры домов, которые с неё видно
+  map.addLayer({id:'vphov-f', type:'fill', source:'dom_poly', filter:['in',['get','i'],['literal',[]]], paint:{'fill-color':'#FFE27A','fill-opacity':0.85}});
+  map.addLayer({id:'vphov-l', type:'line', source:'dom_poly', filter:['in',['get','i'],['literal',[]]], paint:{'line-color':['step',['zoom'],'#FFE27A',12,'#13232F'],'line-width':['interpolate',['linear'],['zoom'],8,2,12,1.2,15,1.4]}});   // издалека дома крошечные — обводка толще
   // полигоны доминант в зоне видимости: исторические — розовые, инженерные — жёлтые, новые ЖК — серые и тихие
   map.addSource('domsel', {type:'geojson', data:{type:'FeatureCollection', features:[]}});
   map.addLayer({id:'domsel-f', type:'fill', source:'domsel', paint:{'fill-color':['match',['get','class'],'Историческая',DOMC.h,'Инженерная',DOMC.e,DOMC.n],
@@ -344,10 +407,35 @@ map.once('style.load', () => {
   const clsSize = (k, lo, hi) => ['interpolate',['linear'],['zoom'],8,['*',clsMul(k),lo],10,['*',clsMul(k),lo * 1.7],13,['*',clsMul(k),hi],15.5,['*',clsMul(k),hi * 1.45]];
   RIP('leisure', 'leisure', clsIcon('leisure'), clsSize('leisure', 0.2, 0.62));
   RIP('photo_points', 'photo_points', ripple('r-photo', '#F08DB0', 'dot'), zs(0.28, 0.55));
-  add('dom_threat', [{id:'dom_threat', type:'symbol', filter:['!=',['get','status'],'существующая'], layout:{'icon-image':ripple('r-red', C.red, 'dot'),'icon-allow-overlap':true,
-    'icon-size':['interpolate',['linear'],['zoom'],8,['interpolate',['linear'],['coalesce',['get','height_m'],40],20,0.12,200,0.35],12,['interpolate',['linear'],['coalesce',['get','height_m'],40],20,0.3,200,0.8]]}, paint:{'icon-opacity':hov(0.9, 1)}}], true);
+  // новостройки — контуры домов: построенные, строящиеся и планируемые разным цветом; издалека — точки, вблизи — дома
+  const NBC = ['match',['get','status'], ...CLS.dom_threat.list.flatMap(([v, c]) => [v, c]), C.red];
+  add('dom_threat', [
+    {id:'dom_threat-f', type:'fill', minzoom:11, paint:{'fill-color':NBC,'fill-opacity':['interpolate',['linear'],['zoom'],11,0,12,hov(0.55, 0.85)]}},
+    {id:'dom_threat-l', type:'line', minzoom:11, filter:['==',['get','status'],'существующая'], paint:{'line-color':NBC,'line-width':['interpolate',['linear'],['zoom'],11,0.5,15,1.6]}},
+    // ещё не построенные — пунктирный контур
+    {id:'dom_threat-d', type:'line', minzoom:11, filter:['!=',['get','status'],'существующая'], paint:{'line-color':NBC,'line-width':['interpolate',['linear'],['zoom'],11,0.8,15,2],'line-dasharray':[2,1.2]}}], true);
+  BASEF['dom_threat-l'] = ['==',['get','status'],'существующая']; BASEF['dom_threat-d'] = ['!=',['get','status'],'существующая'];
+  map.addSource('newb_pt', {type:'geojson', data:D.newb_pt});
+  // общий вид: пузыри районов, где строят больше всего; при приближении распадаются на дома
+  map.addSource('newb_cl', {type:'geojson', data:D.newb_cl});
+  map.addLayer({id:'newb-cl', type:'circle', source:'newb_cl', maxzoom:11, layout:{visibility:'none'},
+    paint:{'circle-color':'#E5383B','circle-opacity':['interpolate',['linear'],['zoom'],10,0.32,11,0],'circle-blur':0.15,
+      'circle-radius':['*',['interpolate',['linear'],['zoom'],8,1,10.5,1.7],['sqrt',['get','n']],1.6],
+      'circle-stroke-color':'#FF8A8D','circle-stroke-width':1.2,'circle-stroke-opacity':['interpolate',['linear'],['zoom'],10,0.9,11,0]}});
+  map.addLayer(resolve({id:'newb-cl-lab', type:'symbol', source:'newb_cl', maxzoom:11, layout:{visibility:'none','text-field':['get','label'],'text-font':FONT_B,
+      'text-size':['interpolate',['linear'],['zoom'],8,11,10.5,13],'text-max-width':10,'text-line-height':1.15,'symbol-sort-key':['-',0,['get','n']],'text-padding':2},
+    paint:{'text-color':T('#9e1f22','#FFD0D1'),'text-halo-color':T('rgba(255,255,255,0.95)','rgba(6,12,18,0.85)'),'text-halo-width':1.4,'text-opacity':['interpolate',['linear'],['zoom'],10.3,1,11,0]}}));
+  map.addLayer({id:'dom_threat-c', type:'circle', source:'newb_pt', minzoom:10, maxzoom:12.5, layout:{visibility:'none'},
+    paint:{'circle-color':NBC,'circle-radius':['interpolate',['linear'],['zoom'],8,['interpolate',['linear'],['coalesce',['get','height_m'],40],20,1.4,90,3.2],12,['interpolate',['linear'],['coalesce',['get','height_m'],40],20,3,90,6]],
+      'circle-stroke-color':'#fff','circle-stroke-width':['case',['has','top_new'],1.5,0],'circle-opacity':['interpolate',['linear'],['zoom'],11.5,0.9,12.5,0]}});
+  map.addLayer(resolve({id:'lab-newtop', type:'symbol', source:'newb_pt', filter:['has','top_new'], layout:{visibility:'none','text-field':['format',['get','name'],{},'\n',{},['concat',['to-string',['round',['get','height_m']]],' м'],{'font-scale':0.8}],
+    'text-font':FONT_R,'text-size':12,'text-anchor':'left','text-offset':[0.9,0],'text-max-width':12,'text-padding':4,'symbol-sort-key':['get','top_new']},
+    paint:{'text-color':T(['match',['get','status'],'существующая','#B3191D','строящаяся','#B85E0C','#7B2C9C'],['match',['get','status'],'существующая','#FF8A8D','строящаяся','#FFB36B','#D9A2F2']),'text-halo-color':T('rgba(255,255,255,0.95)','rgba(6,12,18,0.85)'),'text-halo-width':1.4}}));
+  GROUPS.dom_threat.push('newb-cl', 'newb-cl-lab', 'dom_threat-c', 'lab-newtop');
+  BASEF['newb-cl'] = 'skip'; BASEF['newb-cl-lab'] = 'skip';   // у пузырей нет статуса — фильтр классов их не трогает CLICK.push(['dom_threat-c', 'dom_vis']);
+  BASEF['lab-newtop'] = ['has','top_new'];
   add('estate', [{id:'estate', type:'symbol', layout:{'icon-image':clsIcon('estate'),'icon-size':clsSize('estate', 0.18, 0.6),'icon-allow-overlap':true,
-    'symbol-sort-key':['match',['get','type'],'Дворец',0,'Усадьба',1,5]}, paint:{'icon-opacity':hov(0.95, 1)}}], true);
+    'symbol-sort-key':['match',['get','type'],'Дача',0,'Дом',1,'Вилла',2,'Особняк',2,'Мыза',3,'Усадьба',4,5]}, paint:{'icon-opacity':['case',['==',['get','type'],'Дача'],0.8,hov(0.95, 1)]}}], true);   // дачи мельче и рисуются под остальными
   RIP('paintings', 'paintings', ripple('r-cream', '#B7A68C', 'square'), zs(0.35, 0.65), {}); map.setPaintProperty('paintings', 'icon-opacity', ['case',['in',['to-string',['get','fid']],['literal',(M.paintings || []).map(String)]],0,0.9]);
   RIP('mount_lost', 'mount_lost', ripple('r-lost', C.red, 'x'), zs(0.45, 0.7));
   RIP('law_heights', 'law_heights', ripple('r-green', C.green, 'tri'), zs(0.45, 0.7));
@@ -383,9 +471,9 @@ map.once('style.load', () => {
   const RAIL = ['all',['==',['get','class'],'rail'],['!',['match',['get','subclass'],['tram','subway','light_rail','monorail','funicular','narrow_gauge','preserved'],true,false]],
     ['!',['has','service']]];
   map.addLayer(resolve({id:'rail-base', type:'line', source:'omt', 'source-layer':'transportation', minzoom:8, filter:RAIL,
-    paint:{'line-color':T('#3b4349','#0d1418'),'line-width':['interpolate',['linear'],['zoom'],8,1.6,12,3.2,15,5],'line-opacity':0.9}}));
+    paint:{'line-color':T('#2a2f33','#0d1114'),'line-width':['interpolate',['linear'],['zoom'],8,1,12,2,15,3.2],'line-opacity':0.85}}));   // железная дорога: тонкая, серо-чёрная
   map.addLayer(resolve({id:'rail-dash', type:'line', source:'omt', 'source-layer':'transportation', minzoom:8, filter:RAIL,
-    paint:{'line-color':T('#ffffff','#e9eef0'),'line-width':['interpolate',['linear'],['zoom'],8,0.8,12,1.8,15,3],'line-dasharray':[3,3]}}));
+    paint:{'line-color':T('#8b9399','#6f777c'),'line-width':['interpolate',['linear'],['zoom'],8,0.5,12,1,15,1.8],'line-dasharray':[3,3]}}));
   const trainIcon = (() => { const S = 64, [c, g] = canvas(S, S);
     g.fillStyle = '#13232F'; g.beginPath(); g.roundRect(4, 4, 56, 56, 12); g.fill(); g.lineWidth = 3; g.strokeStyle = '#fff'; g.stroke();
     g.fillStyle = '#fff'; g.beginPath(); g.roundRect(18, 12, 28, 32, 7); g.fill();
@@ -443,11 +531,21 @@ map.once('style.load', () => {
   labFor('lab-law_heights', 'law_heights', ['get','name'], 8);
   labFor('lab-oopt', 'oopt', ['get','name'], 10, {'text-anchor':'center','text-offset':[0,0],'text-size':11.5}, calm);
   labFor('lab-leisure', 'leisure', ['get','name'], 9, {'text-size':['interpolate',['linear'],['zoom'],9,10.5,13,12.5]}, {'text-color':'#F6B8CC'});
+  // усадьбы, дворцы, мызы и др. подписаны сразу; дачи (их сотни) — только при приближении
+  if(D.estate){
+    lab('lab-estate', 'estate', {visibility:'none','text-field':['get','name'],'text-size':['interpolate',['linear'],['zoom'],9,11,13,13],'text-anchor':'left','text-offset':[1.1,0],'text-max-width':11,
+      'symbol-sort-key':['match',['get','type'],'Дворец',0,'Усадьба',1,'Мыза',2,3]}, {'text-color':T('#0d1820', '#F7F3EA'), 'text-halo-color':T('rgba(255,255,255,0.95)', 'rgba(6,12,18,0.85)')}, {minzoom:9, filter:['!=',['get','type'],'Дача']});
+    lab('lab-estate-d', 'estate', {visibility:'none','text-field':['get','name'],'text-size':11.5,'text-anchor':'left','text-offset':[1,0],'text-max-width':10,'text-optional':true},
+      {'text-color':T('#55606a', '#F4E3A8')}, {minzoom:12, filter:['==',['get','type'],'Дача']});
+    (GROUPS.estate = GROUPS.estate || []).push('lab-estate', 'lab-estate-d');
+  }
   // доминанты в зоне видимости
   lab('lab-dom', 'domvis', {'text-field':['format',['get','label'],{},'\n',{},['concat',['to-string',['round',['get','height_m']]],' м'],{'font-scale':0.8,'text-color':TXT2}],
-      'text-size':12,'text-anchor':'bottom','text-offset':[0,-0.9],'text-line-height':1.15,'text-max-width':10,'symbol-sort-key':['-',0,['get','height_m']]}, {}, {filter:['==',['get','top'],1]});
+      'text-size':12,'text-anchor':'bottom','text-offset':[0,-0.9],'text-line-height':1.15,'text-max-width':10,'symbol-sort-key':['-',0,['get','height_m']]}, {'text-color':['match',['get','class'],'Историческая',DOMC.h,'Инженерная',DOMC.e,'#D9DEE1']}, {filter:['==',['get','top'],1]});   // подпись — в цвет светящейся точки
 
   ['mask','isolines','bound','stage','seclev'].forEach(k => show(k, true));
+  // объёмные доминанты и персонажи — под подписями, поверх остального
+  // three.js и сцена подгружаются только при первом включении 3D (см. load3D) — плоской карте они не нужны
   applyBase(false);
   ready = true; queue.splice(0).forEach(fn => fn());
 });
@@ -457,6 +555,11 @@ const ALWAYS = ['mask','isolines','bound','stage','seclev'];
 let shown = [], lgOff = new Set(), lgSolo = null;
 function setShown(keys){
   shown = keys.slice(); lgOff = new Set(); lgSolo = null; clsSolo = null;
+  window.GP_SHOWN = shown;   // 3D-персонажи появляются только у слоёв, которые сейчас на карте
+  // в разделе «Маршруты» тонкие тропы проявляются только вблизи, издалека их заменяет плотность
+  if(map.getLayer('walking')){ const heat = keys.includes('track_heat');
+    map.setPaintProperty('walking', 'line-opacity', heat ? ['interpolate',['linear'],['zoom'],10.5,0,12,0.9] : hov(0.38, 0.9));
+    map.setPaintProperty('walking-glow', 'line-opacity', heat ? ['interpolate',['linear'],['zoom'],10.5,0,12,0.16] : (base === 'sat' ? 0.16 : 0.12)); }
   Object.keys(GROUPS).forEach(k => { if(!ALWAYS.includes(k)) show(k, keys.includes(k)); });
   const tiers = keys.filter(k => k.startsWith('mask_')).map(k => k.slice(5));
   map.setFilter('lab-tier', ['all',['==',['get','kind'],'tier'],['in',['get','tier'],['literal',tiers]]]);
@@ -474,8 +577,11 @@ function setShown(keys){
 
 /* ---------- подложка ---------- */
 let curExag = EXAG;
-map.on('zoomend', () => { if(!is3D || !terrainOk) return; const e = exagAt(map.getZoom());
-  if(Math.abs(e - curExag) > 0.25){ curExag = e; try{ map.setTerrain({source:demSrc, exaggeration:e}); }catch(_){} } });
+// подстраиваем усиление прямо во время приближения, а не только в конце — так дома не «тонут» в рельефе
+// (не чаще 4 раз в секунду: пересчёт рельефа дорогой)
+let exagT = 0;
+map.on('zoom', () => { if(!is3D || !terrainOk) return; const now = performance.now(); if(now - exagT < 250) return; const e = exagAt(map.getZoom());
+  if(Math.abs(e - curExag) > 0.3 || (e === EXAG_CITY && curExag !== e)){ exagT = now; curExag = e; try{ map.setTerrain({source:demSrc, exaggeration:e}); }catch(_){} } });
 function applyBase(animate = true){
   const sat = base === 'sat';
   body.dataset.base = base;
@@ -485,14 +591,50 @@ function applyBase(animate = true){
   THEMED.forEach(([id, kind, prop, v]) => { if(!map.getLayer(id)) return; const val = pick(v, sat);
     kind === 'paint' ? map.setPaintProperty(id, prop, val) : map.setLayoutProperty(id, prop, val); });
   try{ map.setTerrain(is3D && terrainOk ? {source:demSrc, exaggeration:(curExag = exagAt(map.getZoom()))} : null); }catch(e){}
-  try{ map.setSky && map.setSky(sat ? {'sky-color':'#9fc3e6','horizon-color':'#dfe9f0','fog-color':'#dfe9f0','sky-horizon-blend':0.6,'horizon-fog-blend':0.7,'fog-ground-blend':0.2} : undefined); }catch(e){}
+  try{ map.setSky && map.setSky(sat ? {'sky-color':'#8fb9e3','horizon-color':'#d6e4ef','fog-color':'#d6e4ef','sky-horizon-blend':0.35,'horizon-fog-blend':0.05,'fog-ground-blend':0.97,'atmosphere-blend':0} : undefined); }catch(e){}   // дымка только у самого горизонта — всё остальное чётко
   if(animate) map.easeTo({pitch: is3D ? 60 : 0, bearing: is3D ? map.getBearing() : 0, duration:900});
   document.querySelectorAll('.seg [data-base]').forEach(b => b.setAttribute('aria-pressed', b.dataset.base === base));
 }
-$('btn3d').onclick = () => { is3D = !is3D; $('btn3d').setAttribute('aria-pressed', is3D); body.classList.toggle('is3d', is3D);
-  whenReady(() => { applyBase(false); map.easeTo({pitch: is3D ? 62 : 0, bearing: is3D ? -12 : 0, duration:1400}); }); };
+/* 3D включается сам, когда карту приближают (с 12,5 масштаба); кнопка оставляет плоскую карту тем, кому так удобнее */
+const AUTO3D = 12.5;
+let force2D = false;
+// объёмная сцена (three.js, ~600 КБ) — качаем один раз, когда 3D включают впервые
+let scene3dState = 0;   // 0 — не грузили, 1 — грузится, 2 — готово
+function load3D(){
+  if(scene3dState) return; scene3dState = 1;
+  const add = src => new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(src); document.body.appendChild(s); });
+  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123')).then(() => whenReady(() => {
+    scene3dState = 2;
+    if(window.GP3D && !map.getLayer('scene3d')) try{ map.addLayer(GP3D.layer, map.getLayer('infra-place') ? 'infra-place' : undefined); if(GP3D._pending) GP3D.setRoute(...GP3D._pending); map.triggerRepaint(); }catch(e){ console.warn('[3D]', e); }
+  })).catch(e => console.warn('[3D] не загрузилось:', e));
+}
+function set3D(on, soft){
+  if(on === is3D) return; is3D = on;
+  if(on) load3D();
+  $('btn3d').setAttribute('aria-pressed', on); $('btn2d').setAttribute('aria-pressed', !on);
+  body.classList.toggle('is3d', on);
+  whenReady(() => { applyBase(false); map.easeTo({pitch: on ? (soft ? 50 : 62) : 0, bearing: on ? map.getBearing() || -12 : 0, duration: soft ? 900 : 1400}); });
+}
+$('btn3d').onclick = () => { force2D = false; set3D(true); };
+$('btn2d').onclick = () => { force2D = true; set3D(false); };
+map.on('zoomend', () => { if(!force2D && map.getZoom() >= AUTO3D && !is3D) set3D(true, true); else if(!force2D && map.getZoom() < AUTO3D - 2 && is3D) set3D(false, true); });
 document.querySelectorAll('.seg [data-base]').forEach(b => b.onclick = () => { if(base === b.dataset.base) return; base = b.dataset.base; whenReady(() => applyBase()); });
 $('btnHome').onclick = () => fitTo('bound', 9.6);
+// кнопка «карта на весь экран»: прячет и возвращает текстовую колонку
+function setPanelOff(off){
+  body.classList.toggle('panel-off', off);
+  const b = $('btnPanel'); b.setAttribute('aria-pressed', off);
+  b.querySelector('span').textContent = off ? 'Показать текст' : 'Карта на весь экран';
+  b.title = off ? 'Вернуть текстовую колонку' : 'Развернуть карту на весь экран';
+  setTimeout(() => map.resize(), 260);
+}
+$('btnPanel').onclick = () => setPanelOff(!body.classList.contains('panel-off'));
+// подписи источников: свёрнуты в значок «i», чтобы не закрывать карту
+// MapLibre раскрывает подпись заново, когда догружаются источники, — сворачиваем, пока человек сам её не открыл
+let attribTouched = false;
+document.addEventListener('click', e => { if(e.target.closest('.maplibregl-ctrl-attrib-button')) attribTouched = true; }, true);
+const foldAttrib = () => { if(attribTouched) return; document.querySelectorAll('.maplibregl-ctrl-attrib.maplibregl-compact-show').forEach(el => { el.classList.remove('maplibregl-compact-show'); el.removeAttribute('open'); }); };
+map.on('load', foldAttrib); map.on('idle', foldAttrib);
 
 /* ---------- камера ---------- */
 function bboxOf(fc){
@@ -525,8 +667,26 @@ function bearing(a, b){
 /* =========================================================
    Фото, названия
    ========================================================= */
+// статья Википедии про объект (усадьбы — по номеру в слое, новостройки — по номеру доминанты)
+const WIKI = window.GP_WIKI || {estate:{}, dominants:{}};
+function wikiOf(key, p){
+  if(key === 'estate'){ const k = (D.estate?.features || []).findIndex(x => x.properties === p); return k >= 0 ? WIKI.estate[String(k)] : null; }
+  if(p && p.i != null && (key === 'dom_threat' || key === 'dom_vis' || key === 'dominants')) return WIKI.dominants[String(p.i)] || null;
+  return null;
+}
+// отдельный рассказ о самых заметных новостройках
+function topStory(key, p){
+  if(!p || !p.top_new) return '';
+  const nVp = (D.vp_old?.features || []).length, fl = p.height_m ? Math.round(p.height_m / 3) : 0;
+  const st = {'существующая':'Дом уже построен', 'строящаяся':'Дом сейчас строится', 'потенциальная (дом.рф)':'Дом пока только запланирован (по данным ДОМ.РФ)'}[p.status] || '';
+  const seen = String(p.vt || '').split(',').filter(Boolean).length;
+  return `<aside class="fact top-new"><b>Новостройка № ${p.top_new} по заметности</b>
+    <p>${esc(p.name)} — одна из ${NEWB_TOP} новостроек, сильнее всего меняющих горные панорамы Петербурга.</p>
+    <p>Высота около ${num(Math.round(p.height_m))} м${fl ? `, это примерно ${fl} ${plural(fl, 'этаж','этажа','этажей')}` : ''}. ${st}. Её видно с ${p.vis_n || seen} ${plural(p.vis_n || seen, 'смотровой точки','смотровых точек','смотровых точек')} из ${nVp}: в этих видах она поднимается над горизонтом и спорит с историческими доминантами.</p></aside>`;
+}
 function photosOf(key, p){
   const out = [];
+  const w = wikiOf(key, p); if(w && w.img) out.push(w.img);
   if(key === 'mount' && M.mount[String(p.fid)]) M.mount[String(p.fid)].forEach(n => out.push(`media/mount/${n}.webp`));
   if(key === 'paintings' && M.paintings.includes(String(p.fid))) out.push(`media/paint/${p.fid}.webp`);
   if(key === 'photo_points' && M.viewpoints.includes(String(p.id))) out.push(`media/vp/${p.id}.webp`);
@@ -585,7 +745,8 @@ function titleOf(key, p, f){
 const pTop = $('pTop'), pBody = $('pBody'), pFoot = $('pFoot');
 const panelEl = $('panel'), panelGrab = $('pGrab'), stage = panelEl.parentElement;
 const mobilePanel = matchMedia('(max-width: 820px)');
-const mountPanelActive = () => mobilePanel.matches && body.dataset.view === 'mount' && !body.classList.contains('panel-off');
+// на телефоне колонка текста — выдвижная шторка снизу во всех разделах с картой
+const mountPanelActive = () => mobilePanel.matches && body.dataset.view !== 'gallery' && !body.classList.contains('intro') && !body.classList.contains('panel-off');
 let panelCollapsed = false, panelTouch = null;
 
 function setPanelCollapsed(collapsed){
@@ -673,7 +834,8 @@ let clsSolo = null;
 function clsApply(k){
   const c = CLS[k]; if(!c || !GROUPS[k]) return;
   const f = clsSolo && clsSolo[0] === k ? ['==',['get',c.field],clsSolo[1]] : clsOff[k].size ? ['!',['in',['get',c.field],['literal',[...clsOff[k]]]]] : null;
-  GROUPS[k].forEach(id => map.getLayer(id) && map.setFilter(id, f));
+  // у некоторых слоёв есть свой постоянный фильтр (например, подписи дач) — классы добавляются к нему
+  GROUPS[k].forEach(id => { if(!map.getLayer(id)) return; const b = BASEF[id]; if(b === 'skip') return; map.setFilter(id, b && f ? ['all', b, f] : (b || f)); });
   if(k === 'sectors') sectorFocus();
 }
 // ярус в фокусе: если виден один ярус секторов — всё вокруг него темнеет
@@ -691,8 +853,8 @@ document.addEventListener('mouseout', e => { const b = e.target.closest('[data-c
 function legendStatic(keys){
   const rows = keys.map(k => ITEM[k]).filter(Boolean);
   const cnt = k => { const fc = D[srcOf(k)]; return fc && fc.features ? fc.features.length : 0; };
-  return `<ul class="legend legend-live">${rows.map(i => `<li><button data-lg="${i.key}" aria-pressed="true">${swatch(i)}<span class="lg-text"><b>${esc(i.name)}</b>${i.hint ? `<small>${esc(i.hint)}</small>` : ''}</span><em>${cnt(i.key) > 1 ? cnt(i.key) : ''}</em></button>${clsRows(i.key)}</li>`).join('')}</ul>
-    ${rows.length > 1 ? '<p class="small lg-help">Наведите на строку — на карте останется только этот слой. Нажмите — выключить или включить.</p>' : ''}`;
+  const many = rows.length > 1;
+  return `<ul class="legend legend-live${many ? ' legend-toggle' : ''}">${rows.map(i => `<li><button data-lg="${i.key}" aria-pressed="true"${many ? '' : ' disabled'}>${swatch(i)}<span class="lg-text"><b>${esc(i.name)}</b>${i.hint ? `<small>${esc(i.hint)}</small>` : ''}</span>${many ? '<span class="box" aria-hidden="true"></span>' : `<em>${cnt(i.key) > 1 ? cnt(i.key) : ''}</em>`}</button>${clsRows(i.key)}</li>`).join('')}</ul>`;
 }
 // живая легенда: наведение — показать только этот слой, клик — выключить/включить
 function lgApply(){ shown.forEach(k => { if(!(GROUPS[k])) return; show(k, lgSolo ? k === lgSolo : !lgOff.has(k)); }); tierFocus(); }
@@ -715,9 +877,10 @@ function renderHome(){
   panel(topLabel(ICON.map, 'Исследование МЛА+'), `
     <h1>Горные просторы</h1>
     <p class="lead">Петербург принято считать плоским городом. Но его окружает целый амфитеатр из холмов, гребней и древних уступов.</p>
-    <p>От древних морей и ледников до первых финских поселений, дворянских усадеб и дворцов, возведённых ради захватывающих панорам. Горы служили источником строительных материалов, местом научных открытий, а во времена опасности — естественными рубежами защиты города.</p>
-    <p>В поисках этих историй пришлось объехать весь Петербургский амфитеатр, подняться на вершины, отыскать исторические панорамы и поговорить с местными жителями. Результатом стал маршрут, соединяющий ключевые видовые точки.</p>
-    <p>Теперь очередь за вами.</p>
+    <details class="about"><summary>Об исследовании</summary>
+      <p>От древних морей и ледников до первых финских поселений, дворянских усадеб и дворцов, возведённых ради захватывающих панорам. Горы служили источником строительных материалов, местом научных открытий, а во времена опасности — естественными рубежами защиты города.</p>
+      <p>В поисках этих историй пришлось объехать весь Петербургский амфитеатр, подняться на вершины, отыскать исторические панорамы и поговорить с местными жителями. Результатом стал маршрут, соединяющий ключевые видовые точки.</p>
+    </details>
     <div class="choice">
       <a href="#/map"><b>Исследовать самому</b><small>Карта: восемь тем, слои включаются и выключаются</small></a>
       <a href="#/story/amph/1"><b>Пройти с нами</b><small>Девять глав по порядку, карта меняется вместе с текстом</small></a>
@@ -742,9 +905,9 @@ let storyObs = null;
 function stepLayers(st){ const [theme, layers] = STEP[st.map] || ['relief', []]; return theme === 'relief' || theme === 'geo' ? ['mount'].concat(layers.filter(k => k !== 'mount')) : layers; }
 /* ездок на маршруте: велосипедист (или пешеход на пеших маршрутах) едет по треку по кругу */
 let rider = null;
-const BIKE_SVG = '<svg viewBox="0 0 48 40" width="44" height="37" class="rider-bike"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#fff" stroke-width="5" opacity=".9"><circle cx="11" cy="29" r="7.5"/><circle cx="37" cy="29" r="7.5"/><path d="M11 29 19 17h13l5 12M19 17l6 12h12M27 12l-3 5M29 12h4"/></g><g stroke="#13232F" stroke-width="2.4"><g class="wheel"><circle cx="11" cy="29" r="7.5"/><path d="M11 21.5v15M3.5 29h15"/></g><g class="wheel"><circle cx="37" cy="29" r="7.5"/><path d="M37 21.5v15M29.5 29h15"/></g><path d="M11 29 19 17h13l5 12M19 17l6 12h12M27 12l-3 5M29 12h4"/></g><path d="M25 29 22 19l7-6" stroke="#E15989" stroke-width="4"/><circle cx="31" cy="7" r="3.4" fill="#E15989" stroke="#13232F" stroke-width="1.6"/></g></svg>';
-const WALK_SVG = '<svg viewBox="0 0 30 46" width="26" height="40" class="rider-walk"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#fff" stroke-width="6.5" opacity=".9"><path d="M15 12v14"/><path class="leg-a" d="M15 26l-5 9 1 9"/><path class="leg-b" d="M15 26l5 9-1 9"/><path class="arm-a" d="M15 15l-6 7"/><path class="arm-b" d="M15 15l6 7"/></g><g stroke="#13232F" stroke-width="3"><path class="leg-a" d="M15 26l-5 9 1 9"/><path class="leg-b" d="M15 26l5 9-1 9"/><path class="arm-a" d="M15 15l-6 7"/></g><path d="M15 12v14" stroke="#E15989" stroke-width="5.5"/><path class="arm-b" d="M15 15l6 7" stroke="#13232F" stroke-width="3"/><circle cx="15" cy="6.5" r="4" fill="#E15989" stroke="#13232F" stroke-width="1.8"/></g></svg>';
-function stopRider(){ if(rider){ cancelAnimationFrame(rider.raf); rider.mk.remove(); rider = null; } }
+const BIKE_SVG = '<svg viewBox="0 0 52 46" width="46" height="41" class="rider-bike"><g stroke-linecap="round" stroke-linejoin="round" fill="none"><g stroke="#fff" stroke-width="6" opacity=".95"><circle cx="12" cy="35" r="8"/><circle cx="40" cy="35" r="8"/><path d="M12 35 20 22h14l6 13M20 22l7 13h13"/><path d="M25 21 30 9"/></g><g class="wheel"><circle cx="12" cy="35" r="8" stroke="#13232F" stroke-width="2.6"/><path d="M12 27v16M4 35h16" stroke="#13232F" stroke-width="1.2"/></g><g class="wheel"><circle cx="40" cy="35" r="8" stroke="#13232F" stroke-width="2.6"/><path d="M40 27v16M32 35h16" stroke="#13232F" stroke-width="1.2"/></g><path d="M12 35 20 22h14l6 13M20 22l7 13h13M33 22l2-4h4" stroke="#E15989" stroke-width="2.6"/><path d="M27 35 24 27l6-5" stroke="#13232F" stroke-width="4"/><path d="M24 20 29 10" stroke="#F7F4EE" stroke-width="7.5"/><path d="M24 20 29 10" stroke="#13232F" stroke-width="1.4" opacity=".35"/><path d="M29 12l6 7" stroke="#F7F4EE" stroke-width="3.6"/><circle cx="31" cy="6" r="4.2" fill="#F7F4EE" stroke="#13232F" stroke-width="1.4"/><path d="M27.5 5a4 4 0 0 1 7.5-1.5" stroke="#E15989" stroke-width="3"/></g></svg>';
+const WALK_SVG = '<svg viewBox="0 0 30 50" width="27" height="45" class="rider-walk"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#fff" stroke-width="8" opacity=".95"><path d="M15 14v14"/><path class="leg-a" d="M15 28l-4 9 1 10"/><path class="leg-b" d="M15 28l4 9-1 10"/></g><path class="leg-a" d="M15 28l-4 9 1 10" stroke="#13232F" stroke-width="3.6"/><path class="leg-b" d="M15 28l4 9-1 10" stroke="#13232F" stroke-width="3.6"/><path class="arm-a" d="M15 16l-5 8" stroke="#F7F4EE" stroke-width="3.4"/><path d="M15 15v13" stroke="#F7F4EE" stroke-width="8"/><path d="M15 15v13" stroke="#13232F" stroke-width="1.2" opacity=".3"/><path d="M18.5 15l4 6-2 3" stroke="#E15989" stroke-width="3"/><path class="arm-b" d="M15 16l5 8" stroke="#F7F4EE" stroke-width="3.4"/><circle cx="15" cy="8" r="4.4" fill="#F7F4EE" stroke="#13232F" stroke-width="1.4"/><path d="M11 7a4.4 4.4 0 0 1 8.2-1.3" stroke="#4A3426" stroke-width="2.6"/></g></svg>';
+function stopRider(){ if(rider){ cancelAnimationFrame(rider.raf); rider.mk.remove(); rider = null; } window.GP3D?.setRoute(null); }
 function startRider(f, walk){
   stopRider(); if(!f) return;
   const g = f.geometry, lines = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
@@ -829,7 +992,6 @@ function renderStory(id, n){
       <div class="prose">${(st.text || []).map(p => `<p>${p}</p>`).join('')}</div>
       ${st.route ? routeStrip(st.route) : ''}
       ${fi >= 0 ? `<aside class="fact"><b>Факт</b><p>${esc(FACTS[fi].text)}</p></aside>` : ''}
-      <div class="st-map"><h3>На карте</h3>${st.look ? `<p class="small">${esc(st.look)}</p>` : ''}${legendStatic(stepLayers(st))}</div>
     </section>`; }).join('');
   panel(topBack('#/', 'Все главы'), `
     <p class="over">Глава ${si + 1} из ${STORIES.length}</p>
@@ -841,14 +1003,20 @@ function renderStory(id, n){
      <a class="btn btn-dark" ${nx ? `href="#/story/${nx.id}/1"` : 'href="#/map"'} id="stNext">${nx ? 'Глава →' : 'Карта'}</a>`);
   if(storyObs) storyObs.disconnect();
   let cur = 0;
-  const activate = k => { if(k === cur) return; cur = k; applyStep(id, steps[k - 1]);
+  // легенда шага — одна, поверх карты, а не в конце каждого шага
+  const showKey = st => { const mk = $('mapKey'); $('mapKeyBody').innerHTML = `${st.look ? `<p>${esc(st.look)}</p>` : ''}${legendStatic(stepLayers(st))}`;
+    if(isNarrow() && !mk.dataset.seen){ mk.open = false; mk.dataset.seen = 1; } mk.hidden = false; };   // на телефоне легенда свёрнута, чтобы не закрывать карту
+  const activate = k => { if(k === cur) return; cur = k; applyStep(id, steps[k - 1]); showKey(steps[k - 1]);
     pBody.querySelectorAll('.st').forEach(el => el.classList.toggle('on', +el.dataset.n === k));
     try{ history.replaceState(null, '', `#/story/${id}/${k}`); }catch(e){} };
-  storyObs = new IntersectionObserver(es => { const vis = es.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+  // пока панель докручивается до нужного шага по ссылке, наблюдатель не должен сбивать его на первый
+  let settled = n <= 1;
+  storyObs = new IntersectionObserver(es => { if(!settled) return; const vis = es.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
     if(vis.length) activate(+vis[0].target.dataset.n); }, {root:pBody, rootMargin:'-30% 0px -60% 0px', threshold:0});
   pBody.querySelectorAll('.st').forEach(el => storyObs.observe(el));
   activate(n);
-  if(n > 1) requestAnimationFrame(() => { const el = pBody.querySelector(`.st[data-n="${n}"]`); if(el) pBody.scrollTop = el.offsetTop - 12; });
+  if(n > 1){ const go = () => { const el = pBody.querySelector(`.st[data-n="${n}"]`); if(el) pBody.scrollTop += el.getBoundingClientRect().top - pBody.getBoundingClientRect().top - 12; };
+    requestAnimationFrame(go); setTimeout(go, 350); setTimeout(() => { go(); settled = true; }, 900); }
 }
 
 /* =========================================================
@@ -860,7 +1028,7 @@ const LISTS = {
   relief:[['mount', f => f.properties.name, (a, b) => (b.properties.height_value||0) - (a.properties.height_value||0), p => [p.type, p.height_value ? num(p.height_value) + ' м' : ''].filter(Boolean).join(', ')]],
   geo:[['landscape_450'],['landscape_25'],['landscape_12'],['landscape_7']],
   finns:[['maki_selki', f => f.properties.name, null, p => p.name_ru ? 'сейчас ' + p.name_ru : 'урочище']],
-  estates:[['estate', f => f.properties.name, null, p => p.type || 'усадьба'], ['paintings', f => f.properties.name, null, () => 'картина']],
+  estates:[['estate', f => f.properties.name, (a, b) => (a.properties.type === 'Дача') - (b.properties.type === 'Дача'), p => p.type || 'усадьба'], ['paintings', f => f.properties.name, null, () => 'картина']],
   today:[['routes', f => f.properties.name, null, () => 'пеший маршрут'], ['leisure', f => f.properties.name, null, p => p.kind || 'досуг']],
   threats:[['mount_lost', null, null, () => 'утраченная вершина'], ['reserve', null, (a, b) => b.properties.area_ha - a.properties.area_ha, p => [p.tier, p.sector].filter(Boolean).join(', ')]],
   protect:[['law_heights', null, null, () => 'охраняемая высота'], ['oopt', null, null, p => p.kind]]
@@ -940,15 +1108,20 @@ function openObject(key, i, fly){
   if(key === 'vp_new' || key === 'vp_old'){ location.hash = '#/view/' + f.properties.code; return; }
   if(key === 'mount'){ location.hash = '#/mount/' + f.properties.fid; return; }
   const I = INFO[infoKey(key)], p = f.properties, title = titleOf(infoKey(key) === 'dominants' ? 'dominants' : key, p, f), photos = photosOf(key, p);
+  // карточка — отдельный шаг истории: кнопка «назад» браузера или мыши закрывает её и возвращает туда, где читали
+  if(!card && !(history.state && history.state.card)) try{ history.pushState({card:1}, '', location.hash); }catch(e){}
   card = {key, i, back:location.hash};
   setSel(f);
-  const saved = findIdx(s, i) >= 0, text = I.text(p), ex = I.explain(p, key);
-  panel(`<button class="p-label p-back" id="cardBack">${ICON.back}Назад</button>`, `
+  const saved = findIdx(s, i) >= 0, text = I.text(p), ex = I.explain(p, key), wk = wikiOf(key, p);
+  panel(`<button class="p-label p-back" id="cardBack">${ICON.back}${card.back.startsWith('#/story/') ? 'К главе' : 'Назад'}</button>`, `
     <p class="over"><i class="dotc" style="background:${I.color}"></i>${esc(I.kicker(p, key))}</p>
     <h1 class="h-step">${esc(title)}</h1>
     ${photos.length ? `<div class="photos${key === 'routes' ? ' photos-round' : ''}">${photos.map((u, k) => `<figure class="fig" data-zoom="${u}" data-cap="${esc(title)}"><img src="${key === 'routes' ? thumbOf(u) : u}" alt="${esc(title)}, фото ${k + 1}" referrerpolicy="no-referrer"></figure>`).join('')}</div>` : ''}
     ${key === 'leisure' && LEISURE_PHOTO[p.name] ? `<p class="small">Фото: <a href="${LEISURE_PHOTO[p.name].link}" target="_blank" rel="noopener">${LEISURE_PHOTO[p.name].site}</a>${photos.length > 1 ? '; остальные — снимки нашей экспедиции рядом' : ''}.</p>` : key === 'leisure' && photos.length ? '<p class="small">Снимок нашей экспедиции рядом с этим местом.</p>' : ''}
+    ${wk && wk.img ? `<p class="small credit">Фото: <a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(wk.f || '')}" target="_blank" rel="noopener">Викисклад</a></p>` : ''}
+    ${topStory(key, p)}
     ${text ? `<div class="prose">${text.split(/\n+/).map(x => `<p>${esc(x)}</p>`).join('')}</div>` : ''}
+    ${wk && wk.x ? `<aside class="wiki"><p>${esc(wk.x)}</p><a href="${esc(wk.u)}" target="_blank" rel="noopener">Википедия: ${esc(wk.t)} ↗</a></aside>` : ''}
     ${table(I.rows(p, key))}
     ${infoKey(key) === 'dominants' ? domSeenBlock(f) : ''}
     ${key === 'routes' && p.name ? `<p><button type="button" class="btn btn-gpx" data-gpx="${esc(p.name)}">Скачать трек для GPS (.gpx)</button></p>` : ''}
@@ -959,8 +1132,11 @@ function openObject(key, i, fly){
   $('cardZoom').onclick = () => flyTo(centerOf(f), 13.5);
   if(key === 'photo_points') drawCone(f); else clearCone();
   if(fly) whenReady(() => f.geometry.type === 'Point' ? flyTo(f.geometry.coordinates, 12.5) : map.fitBounds(bboxOf({features:[f]}), {padding:viewPad(), maxZoom:13, pitch:camPitch(), duration:1600}));
+  updateReturn();
 }
-function closeCard(){ card = null; setSel(null); clearCone(); showDomSeen(null); route(); }
+function closeCard(fromPop){ card = null; setSel(null); clearCone(); showDomSeen(null); route();
+  if(fromPop !== true && history.state && history.state.card) history.back(); }
+addEventListener('popstate', () => { if(card && !(history.state && history.state.card)) closeCard(true); });
 function domSeenList(f){
   const c = f.geometry.coordinates;
   return (DOM_SEEN[f.properties.i] || []).map(([code, m]) => { const v = VIEWS.find(x => x.p.code === code); return v ? {v, m, d:kmBetween(v.f.geometry.coordinates, c)} : null; })
@@ -970,7 +1146,7 @@ function domSeenBlock(f){
   const L = domSeenList(f);
   if(!L.length) return `<h3>Откуда видна</h3><p class="small">${String(f.properties.status || '').startsWith('потенц') ? 'Дома ещё нет — он не закрывает и не виден ни с одной точки.' : 'Ни с одной смотровой точки её не видно: закрывают рельеф, лес или дома, либо она слишком далеко и мала для глаза.'}</p>`;
   return `<h3>Откуда видна · ${L.length} ${plural(L.length, 'точка','точки','точек')}</h3>
-    <p class="small">Сверху — точки, откуда она заметнее всего: выше поднимается над тем, что её загораживает. Нажмите, чтобы открыть паспорт вида; на карте пунктир — линия взгляда.</p>
+    <p class="small">Сверху — точки, откуда она заметнее всего: выше поднимается над тем, что её загораживает. На карте пунктир — линия взгляда.</p>
     <ul class="recs seen-list">${L.map(({v, m, d}) => `<li><a href="#/view/${v.p.code}">${esc(v.p.name)}</a> <small>· ${num(Math.round(d * 10) / 10)} км, видна верхняя часть ${num(Math.round(m))} м</small></li>`).join('')}</ul>`;
 }
 function showDomSeen(f){
@@ -994,7 +1170,8 @@ const tip = $('tip');
 function pickAt(point){
   const ids = CLICK.map(c => c[0]).filter(id => map.getLayer(id) && map.getLayoutProperty(id, 'visibility') !== 'none');
   if(!ids.length) return null;
-  const fs = map.queryRenderedFeatures([[point.x - 6, point.y - 6], [point.x + 6, point.y + 6]], {layers:ids});
+  const r = isTouch ? 16 : 6;   // палец толще курсора — на телефоне ловим объекты в большем радиусе
+  const fs = map.queryRenderedFeatures([[point.x - r, point.y - r], [point.x + r, point.y + r]], {layers:ids});
   if(!fs.length) return null;
   const rank = f => f.layer.type === 'fill' ? 3 : f.layer.type === 'line' ? 2 : /^vp_/.test(f.layer.id) ? 0 : 1;
   fs.sort((a, b) => rank(a) - rank(b));
@@ -1002,9 +1179,20 @@ function pickAt(point){
   if(key === 'dom_vis' && typeof fs[0].properties.i === 'string') return null;   // Лахта-центр и Исаакий — ориентиры без карточки
   return {f:fs[0], key, idx: key === 'dom_vis' ? fs[0].properties.i : fs[0].id};
 }
-map.on('mousemove', e => {
-  if(isTouch) return;
+let vpHov = null;
+function vpHover(code){
+  if(code === vpHov || !map.getLayer('vphov-f')) return; vpHov = code;
+  const ids = code ? (((window.GP_VIEWS || {}).views || {})[code]?.doms || []).map(d => d[0]) : [];
+  const f = ['in',['get','i'],['literal',ids]];
+  map.setFilter('vphov-f', f); map.setFilter('vphov-l', f);
+}
+// наведение: поиск объекта под курсором — не чаще раза за кадр
+let mmEvt = null, mmRaf = 0;
+map.on('mousemove', e => { if(isTouch) return; mmEvt = e; if(!mmRaf) mmRaf = requestAnimationFrame(() => { mmRaf = 0; onHover(mmEvt); }); });
+function onHover(e){
+  if(map.isMoving()) return;   // во время перетаскивания карту не опрашиваем
   const p = pickAt(e.point);
+  vpHover(p && p.key === 'vp_old' ? D.vp_old.features[p.idx]?.properties.code : null);
   map.getCanvas().style.cursor = p ? 'pointer' : '';
   const ref = p && p.key !== 'dom_vis' ? {source:srcOf(p.key), id:p.f.id} : null;
   if(hovered && (!ref || hovered.source !== ref.source || hovered.id !== ref.id)){ try{ map.setFeatureState(hovered, {hover:false}); }catch(_){} hovered = null; }
@@ -1015,9 +1203,11 @@ map.on('mousemove', e => {
   tip.innerHTML = isVp ? `<b>${esc(f.properties.name || '')}</b><span>${esc(TODO[f.properties.todo] ? TODO[f.properties.todo].name + ' · ' : '')}открыть паспорт вида</span>`
     : `<b>${esc(titleOf(infoKey(p.key) === 'dominants' ? 'dominants' : p.key, f.properties, f))}</b><span>${esc(I.kicker(f.properties, p.key))}</span>`;
   tip.hidden = false; tip.style.left = (e.point.x + 14) + 'px'; tip.style.top = (e.point.y + 14) + 'px';
-});
-map.on('mouseout', () => { tip.hidden = true; });
-map.on('click', e => { const p = pickAt(e.point); if(p) openObject(p.key, p.idx); });
+}
+map.on('mouseout', () => { tip.hidden = true; vpHover(null); });
+// то же при наведении на строку смотровой точки в списке
+document.addEventListener('mouseover', e => { if(isTouch) return; const a = e.target.closest('a[href^="#/view/"]'); whenReady(() => vpHover(a ? decodeURIComponent(a.getAttribute('href').slice(7)) : (body.dataset.view === 'view' ? vpHov : null))); });
+map.on('click', e => { const p = pickAt(e.point); if(p) openObject(p.key, p.idx); else if(card) closeCard(); });   // клик мимо объектов закрывает карточку
 
 /* =========================================================
    Видовые точки: список и паспорт
@@ -1027,9 +1217,10 @@ map.on('click', e => { const p = pickAt(e.point); if(p) openObject(p.key, p.idx)
 const VIEWS = (D.vp_new?.features||[]).map((f, i) => ({kind:'new', key:'vp_new', i, f, p:f.properties, n:+f.properties.code.slice(3)}))
   .concat((D.vp_old?.features||[]).map((f, i) => ({kind:'old', key:'vp_old', i, f, p:f.properties, n:f.properties.n})));
 const AZ = {'С':'север','СВ':'северо-восток','В':'восток','ЮВ':'юго-восток','Ю':'юг','ЮЗ':'юго-запад','З':'запад','СЗ':'северо-запад'};
-let viewFilter = 'all';
+// выбранные типы воздействия: пусто — все; можно выбрать один, два или три
+const vfSel = new Set();
 const TODO_KEYS = ['охранять','формировать','расчищать'];
-const vMatch = v => viewFilter === 'all' || v.p.todo === viewFilter;
+const vMatch = v => !vfSel.size || vfSel.has(v.p.todo);
 const todoBadge = p => { const t = TODO[p.todo]; return t ? `<span class="todo" style="--c:${t.color}">${t.name}</span>` : ''; };
 const secText = s => !s || s[1] >= 360 ? 'обзор на 360°' : `обзор ${num(Math.round(s[1]))}°, ${window.GP.dir(s[0])} — ${window.GP.dir((s[0] + s[1]) % 360)}`;
 const shotName = p => '';
@@ -1040,11 +1231,20 @@ function interestBlock(open){
 }
 function todoCards(){
   return `<div class="todo-cards">${TODO_KEYS.map((k, i) => { const t = TODO[k], n = VIEWS.filter(v => v.p.todo === k).length;
-    return `<button class="todo-card${viewFilter === k ? ' on' : ''}" data-vf="${k}" style="--c:${t.color}" aria-pressed="${viewFilter === k}"><b>${i + 1}. ${t.name}</b><em>${n}</em><small>${esc(t.text)}</small></button>`; }).join('')}</div>`;
+    return `<button class="todo-card${vfSel.has(k) ? ' on' : ''}" data-vf="${k}" style="--c:${t.color}" aria-pressed="${vfSel.has(k)}"><span class="tc-check" aria-hidden="true"></span><b>${t.name}</b><em>${n}</em><small>${esc(t.text)}</small></button>`; }).join('')}</div>`;
 }
 function applyTodoFilter(){
-  const f = viewFilter === 'all' ? null : ['==',['get','todo'],viewFilter];
+  const f = vfSel.size ? ['in',['get','todo'],['literal',[...vfSel]]] : null;
   ['vp_old','lab-vp_old'].forEach(id => map.getLayer(id) && map.setFilter(id, f));
+}
+// переключение типа воздействия — без перерисовки панели: ничего не прыгает и не прокручивается
+function toggleTodo(k){
+  if(k === 'all') vfSel.clear(); else vfSel.has(k) ? vfSel.delete(k) : vfSel.add(k);
+  if(vfSel.size === TODO_KEYS.length) vfSel.clear();
+  pBody.querySelectorAll('[data-vf]').forEach(b => { const on = b.dataset.vf === 'all' ? !vfSel.size : vfSel.has(b.dataset.vf);
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  const g = $('gcards'); if(g) g.innerHTML = groupCards();
+  whenReady(applyTodoFilter);
 }
 const VG = (window.GP_VIEWS || {}).groups || [], VALL = (window.GP_VIEWS || {}).all;
 const groupViews = g => VIEWS.filter(v => g.codes.includes(v.p.code));
@@ -1083,13 +1283,15 @@ function planesIntro(){
 }
 document.addEventListener('click', e => { const b = e.target.closest('.pl-tog'); if(!b) return; e.preventDefault(); e.stopPropagation();
   const f = b.closest('.plw'), on = !f.classList.toggle('pl-off'); b.setAttribute('aria-pressed', on); }, true);
-function renderViews(){
-  const tabs = [['all','Все']].concat(TODO_KEYS.map(k => [k, TODO[k].name])).map(([id, label]) => `<button class="tab${id === viewFilter ? ' on' : ''}" data-vf="${id}" aria-pressed="${id === viewFilter}">${label}</button>`).join('');
+function groupCards(){
   const cards = VG.map(g => { const vs = groupViews(g).filter(vMatch); if(!vs.length) return '';
     const cover = vs.map(thumbOfV).find(Boolean) || groupViews(g).map(thumbOfV).find(Boolean), lm = lmSeenG(vs);
     return `<a class="gcard" href="#/views/${g.id}">${cover ? `<img src="${cover}" alt="" loading="lazy">` : '<span class="gnone"></span>'}
       <span class="gtxt"><b>${esc(g.name)}</b><small>${vs.length} ${plural(vs.length, 'точка','точки','точек')} · видно ${num(Math.round(g.area))} км²</small>${todoBar(vs)}
       ${lm.length ? `<small>в кадре: ${esc(lm.join(', '))}</small>` : '<small>вид на ландшафт</small>'}</span></a>`; }).join('');
+  return cards || '<p class="small">Нет возвышенностей с точками выбранного типа.</p>';
+}
+function renderViews(){
   panel(topLabel(ICON.eye, 'Видовые точки'), `
     <h1>Откуда смотреть на город</h1>
     <p class="lead">Мы объехали ${VG.length} ${plural(VG.length, 'возвышенность','возвышенности','возвышенностей')} амфитеатра и отметили ${VIEWS.length} смотровых ${plural(VIEWS.length, 'точку','точки','точек')}. Вместе они открывают около ${num(VALL ? VALL.area : 0)} км² города и пригородов.</p>
@@ -1099,10 +1301,9 @@ function renderViews(){
     ${interestBlock(false)}
     <h3>Три типа воздействия</h3>
     ${todoCards()}
-    <h3>Возвышенности</h3>
-    <div class="tabs">${tabs}</div>
-    <div class="gcards">${cards}</div>`);
-  pBody.querySelectorAll('[data-vf]').forEach(b => b.onclick = () => { viewFilter = b.dataset.vf === viewFilter && b.classList.contains('todo-card') ? 'all' : b.dataset.vf; renderViews(); });
+    <h3 class="grp">Возвышенности <button type="button" class="link-btn${vfSel.size ? '' : ' on'}" data-vf="all">Показать все типы</button></h3>
+    <div class="gcards" id="gcards">${groupCards()}</div>`);
+  pBody.querySelectorAll('[data-vf]').forEach(b => b.onclick = () => toggleTodo(b.dataset.vf));
   whenReady(() => { setShown(['vp_old']); applyTodoFilter(); clearViewshed(); focusVp(VIEWS.map(v => v.p.code)); setOpen('open'); if(VALL) setVsImage('media/vs/all.png', VALL.coords);
     if(lastView !== 'views' && lastView !== 'view') fitTo('bound', 9.6); });
 }
@@ -1440,10 +1641,10 @@ function renderPassport(code){
       <span><i class="k-n"></i>новый жилой дом выше 50 м</span>
       <small>На карте подписаны самые заметные — те, что выше других поднимаются над горизонтом.</small></div>
     <h3>Объекты наблюдения</h3>
-    ${top.length ? `${skyline(v, now)}
+    ${top.length ? `
       <ul class="obs">${top.map(f => `<li><i style="background:${f.properties.class === 'Историческая' ? DOMC.h : DOMC.e}"></i><b>${esc(f.properties.name)}</b><small>${num(Math.round(f.properties.height_m))} м · ${num(Math.round(f.properties._km * 10) / 10)} км · над горизонтом ${num(Math.round(f.properties._vis))} м</small></li>`).join('')}</ul>
       <p class="small">Над горизонтом поднимается ${hist.length ? `${hist.length} ${plural(hist.length, 'историческая доминанта','исторические доминанты','исторических доминант')}` : 'ни одной исторической доминанты'}, ${eng.length} ${plural(eng.length, 'инженерная','инженерные','инженерных')}${newNow ? ` и ${newNow} ${plural(newNow, 'новый жилой дом','новых жилых дома','новых жилых домов')}` : ''}. ${newFut ? `Ещё ${newFut} ${plural(newFut, 'запроектированный дом','запроектированных дома','запроектированных домов')} войдут в панораму, когда их построят.` : ''} Цвета — как на карте: светло-золотые исторические, голубые инженерные, серые новые дома.</p>`
-      : `${skyline(v, now)}<p class="note">Город отсюда не виден — это вид на горные просторы: поля, лес и соседние гряды.${now.length ? ` Над горизонтом поднимаются только ${now.length} ${plural(now.length, 'постройка','постройки','построек')} без исторического значения.` : ''}</p>`}
+      : `<p class="note">Город отсюда не виден — это вид на горные просторы: поля, лес и соседние гряды.${now.length ? ` Над горизонтом поднимаются только ${now.length} ${plural(now.length, 'постройка','постройки','построек')} без исторического значения.` : ''}</p>`}
     ${profile(v)}
     ${value}`,
     `<a class="btn" ${prev ? `href="#/view/${prev.p.code}"` : 'aria-disabled="true"'}>Назад</a><span class="count">${pad2(idx + 1)} / ${VIEWS.length}</span><a class="btn btn-dark" ${next ? `href="#/view/${next.p.code}"` : 'aria-disabled="true"'}>Дальше</a>`);
@@ -1556,8 +1757,35 @@ function renderGallery(){
     return `<article class="tile"><a href="#/map" data-open="${x.key}:${x.i}">${x.src ? `<img src="${x.src}" alt="${esc(t)}" loading="lazy" decoding="async">` : `<div class="tile-none">${esc(I.name)}</div>`}</a>
       <div class="tile-cap"><span><b>${esc(t)}</b><small>${esc(sub)}</small></span><button data-save="${x.key}:${x.i}">${findIdx(x.key, x.i) >= 0 ? 'Сохранено' : 'Сохранить'}</button></div></article>`; }).join('');
   $('gEmpty').hidden = items.length > 0;
-  $('gEmpty').innerHTML = 'Здесь пока пусто. Откройте любой объект на <a href="#/map">карте</a> или снимок в галерее и нажмите «Сохранить».';
+  $('gEmpty').innerHTML = 'Здесь будут места, которые вы сохраните на <a href="#/map">карте</a> или в галерее.';
   $('gallery').scrollTop = 0;
+}
+/* Маршруты: Большая горная тропа и наши треки. Издалека — плотность всех троп, вблизи — линии. */
+let trackHeatBuilt = false;
+function buildTrackHeat(){
+  if(trackHeatBuilt) return; trackHeatBuilt = true;
+  const pts = [], step = 0.004;
+  ['walking','routes','trail'].forEach(k => (D[k]?.features || []).forEach(f => { const g = f.geometry; if(!g) return;
+    (g.type === 'MultiLineString' ? g.coordinates : g.type === 'LineString' ? [g.coordinates] : []).forEach(l => { for(let i = 1; i < l.length; i++){
+      const a = l[i - 1], b = l[i], n = Math.max(1, Math.round(Math.hypot((b[0] - a[0]) * 0.5, b[1] - a[1]) / step));
+      for(let s = 0; s < n; s++) pts.push({type:'Feature', properties:{w:k === 'walking' ? 1 : 2}, geometry:{type:'Point', coordinates:[a[0] + (b[0] - a[0]) * s / n, a[1] + (b[1] - a[1]) * s / n]}}); } }); }));
+  map.getSource('track-pts').setData({type:'FeatureCollection', features:pts});
+}
+function renderRoutes(){
+  const R = (D.routes?.features || []).map((f, i) => ({f, i, p:f.properties, name:String(f.properties.name || '').trim()})).filter(r => r.name);
+  const walk = r => /^Пешком/.test((ROUTES[r.name] || [''])[0]);
+  const rows = R.map(r => { const sh = routeShots(r.f), th = sh.length ? `media/vp/${sh[0].id}.t.webp` : '';
+    return `<div class="route-row"><a class="row" href="#/routes" data-open="routes:${r.i}">${th ? `<img class="row-img" src="${th}" alt="" loading="lazy">` : '<span class="row-img"></span>'}
+      <span class="row-main"><b>${esc(r.name)}</b><small>${walk(r) ? 'пешком' : 'на велосипеде'}${r.p.length ? ' · ' + esc(r.p.length) : ''}${sh.length ? ` · ${sh.length} ${plural(sh.length, 'снимок','снимка','снимков')}` : ''}</small></span></a>
+      <button type="button" class="btn btn-gpx" data-gpx="${esc(r.name)}" title="Скачать трек для навигатора">GPX</button></div>`; }).join('');
+  panel(topLabel(ICON.map, 'Маршруты'), `
+    <h1>Маршруты</h1>
+    <p class="lead">Большая горная тропа и девять наших треков по высотам вокруг города.</p>
+    <p>На общем виде карта показывает плотность: чем ярче пятно, тем гуще тропы и чаще здесь ходят и ездят. Приблизьте карту — пятна раскроются в отдельные тропы, розовым выделены наши маршруты.</p>
+    <a class="row" href="#/story/trail/1"><span class="row-main"><b>Большая горная тропа</b><small>Как команда МЛА+ нашла эти виды и как их связать в один путь</small></span></a>
+    <h2>Наши треки <span class="h-n">${R.length}</span></h2>
+    <div class="rows">${rows}</div>`);
+  whenReady(() => { buildTrackHeat(); setShown(['track_heat','walking','routes','trail']); clearViewshed(); if(lastView !== 'routes') fitTo('bound', 9.6); });
 }
 function focusObject(key, i){
   const t = THEMES.find(x => x.items.some(it => it.key === key || (key.startsWith('landscape') && it.key === key)));
@@ -1574,7 +1802,6 @@ $('lightbox').onclick = e => { if(e.target.id === 'lightbox') closeLightbox(); }
 
 addEventListener('keydown', e => {
   if(e.target.closest('input, textarea, [contenteditable]')) return;
-  if(e.key === 'Backspace'){ e.preventDefault(); body.classList.toggle('panel-off'); setTimeout(() => map.resize(), 260); return; }
   if(e.key === 'Escape'){ if(!$('lightbox').hidden) return closeLightbox(); if(card) return closeCard(); }
   if((body.dataset.view === 'story' || body.dataset.view === 'view' || body.dataset.view === 'mount') && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')){
     const b = pFoot.querySelectorAll('a.btn')[e.key === 'ArrowRight' ? 1 : 0];
@@ -1586,12 +1813,33 @@ addEventListener('keydown', e => {
    Адреса: #/ · #/story/<глава>/<шаг> · #/map/<тема> · #/views · #/view/<код> · #/gallery/<вкладка>
    ========================================================= */
 let lastView = null;
-function route(){
+/* Возврат в главу: если из главы ушли в паспорт точки, гору или карточку — над картой висит кнопка «Вернуться к главе».
+   Пропадает, когда человек сам выбирает раздел в меню или возвращается в главу. */
+let storyReturn = null, navJump = false;
+document.addEventListener('click', e => { if(e.target.closest('[data-nav], .logo')) navJump = true; }, true);
+function updateReturn(){
+  const chip = $('retChip'), inStory = body.dataset.view === 'story' && !card;
+  const ret = card && card.back && card.back.startsWith('#/story/') ? card.back : (!inStory && storyReturn);
+  if(!ret){ chip.hidden = true; return; }
+  const s = STORIES.find(x => x.id === ret.split('/')[2]);
+  if(!s){ chip.hidden = true; return; }
+  chip.innerHTML = `${ICON.back}<span>Вернуться к главе <b>«${esc(s ? s.title : '')}»</b></span>`;
+  chip.href = ret; chip.hidden = false;
+}
+$('retChip').addEventListener('click', e => { if(card && card.back && $('retChip').getAttribute('href') === location.hash){ e.preventDefault(); closeCard(); } });
+function route(e){
   const parts = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/').filter(Boolean), v = parts[0] || 'home';
-  const view = v === 'story' ? 'story' : v === 'map' ? 'map' : v === 'views' ? 'views' : v === 'view' ? 'view' : v === 'mounts' ? 'mounts' : v === 'mount' ? 'mount' : v === 'gallery' ? 'gallery' : 'home';
+  const view = ['story','map','views','view','mounts','mount','gallery','routes'].includes(v) ? v : 'home';
+  const oldHash = e && e.oldURL ? '#' + (e.oldURL.split('#')[1] || '') : '';
+  if(view === 'story' || navJump) storyReturn = null;
+  else if(lastView === 'story' && oldHash.startsWith('#/story/')) storyReturn = oldHash;
+  navJump = false;
   document.querySelectorAll('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === view || (a.dataset.nav === 'home' && view === 'story') || (a.dataset.nav === 'views' && view === 'view') || (a.dataset.nav === 'mounts' && view === 'mount')));
   endPanelTouch(); setPanelCollapsed(false);
   body.dataset.view = view; card = null; tip.hidden = true;
+  // любой переход стирает следы прошлой карточки: лучи от доминанты, сектор снимка, выделение
+  whenReady(() => { map.getSource('domrays')?.setData(EMPTY); clearCone(); setSel(null); });
+  if(view !== 'story') $('mapKey').hidden = true;
   $('gallery').hidden = view !== 'gallery';
   if(view !== 'view') whenReady(clearViewshed);
   if(view !== 'story') lastZoomKey = null;
@@ -1602,6 +1850,7 @@ function route(){
   else if(view === 'mounts') renderMounts();
   else if(view === 'mount') renderMount(parts[1]);
   else if(view === 'gallery'){ galleryTab = parts[1] || galleryTab; renderGallery(); }
+  else if(view === 'routes') renderRoutes();
   else {
     if(parts[1] && parts[1] !== activeTheme){ activeTheme = parts[1]; listAll = false; }
     renderMap();
@@ -1609,6 +1858,7 @@ function route(){
     else if(lastView && lastView !== 'map') whenReady(() => { setSel(null); });
   }
   lastView = view;
+  updateReturn();
   requestAnimationFrame(() => map.resize());
 }
 addEventListener('hashchange', route);
