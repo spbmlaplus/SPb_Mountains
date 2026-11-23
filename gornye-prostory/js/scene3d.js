@@ -229,14 +229,15 @@
   let TRACKS = null;
   function trackPaths(){
     if(TRACKS) return TRACKS; TRACKS = [];
-    const R = (window.GP && window.GP.ROUTES) || {}, mk = line => { if(!line || line.length < 2) return null; const cum = [0];
+    const mk = line => { if(!line || line.length < 2) return null; const cum = [0];
       for(let j = 1; j < line.length; j++) cum.push(cum[j - 1] + Math.hypot((line[j][0] - line[j - 1][0]) * KX, (line[j][1] - line[j - 1][1]) * KY));
       return cum[cum.length - 1] > 50 ? {pts:line, cum, L:cum[cum.length - 1]} : null; };
-    const add = (layer, id, line, walk) => { const P = mk(line); if(P) TRACKS.push({layer, id, P, walk, speed:walk ? 1.4 : 5.5, n:Math.max(1, Math.round(P.L / 2500))}); };
-    (D.routes?.features || []).forEach((f, i) => { const g = f.geometry; if(!g) return; const walk = /^Пешком/.test((R[f.properties.name] || [''])[0]);
-      (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('routes', 'r' + i + '.' + k, l, walk)); });
+    // все ездоки — велосипедисты, в том числе на пеших маршрутах
+    const add = (layer, id, line) => { const P = mk(line); if(P) TRACKS.push({layer, id, P, walk:false, speed:5.5, n:Math.max(1, Math.round(P.L / 2500))}); };
+    (D.routes?.features || []).forEach((f, i) => { const g = f.geometry; if(!g) return;
+      (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('routes', 'r' + i + '.' + k, l)); });
     (D.trail?.features || []).forEach((f, i) => { const g = f.geometry; if(!g) return;
-      (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('trail', 't' + i + '.' + k, l, false)); });
+      (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('trail', 't' + i + '.' + k, l)); });
     return TRACKS;
   }
   function walker(){ const P = person({body:M.white}), g = new T.Group(); g.add(P.g); return {g, P}; }

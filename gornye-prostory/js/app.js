@@ -609,7 +609,7 @@ let scene3dState = 0;   // 0 — не грузили, 1 — грузится, 2 
 function load3D(){
   if(scene3dState) return; scene3dState = 1;
   const add = src => new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(src); document.body.appendChild(s); });
-  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123f')).then(() => whenReady(() => {
+  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123g')).then(() => whenReady(() => {
     scene3dState = 2;
     if(window.GP3D && !map.getLayer('scene3d')) try{ map.addLayer(GP3D.layer, map.getLayer('infra-place') ? 'infra-place' : undefined); if(GP3D._pending) GP3D.setRoute(...GP3D._pending); map.triggerRepaint(); }catch(e){ console.warn('[3D]', e); }
   })).catch(e => console.warn('[3D] не загрузилось:', e));
@@ -909,29 +909,42 @@ let lastZoomKey = null;
    Кнопки внизу и стрелки ←/→ переключают главы; Backspace прячет панель. */
 let storyObs = null;
 function stepLayers(st){ const [theme, layers] = STEP[st.map] || ['relief', []]; return theme === 'relief' || theme === 'geo' ? ['mount'].concat(layers.filter(k => k !== 'mount')) : layers; }
-/* ездок на маршруте: велосипедист (или пешеход на пеших маршрутах) едет по треку по кругу */
-let rider = null;
-const BIKE_SVG = '<svg viewBox="0 0 52 46" width="46" height="41" class="rider-bike"><g stroke-linecap="round" stroke-linejoin="round" fill="none"><g stroke="#fff" stroke-width="6" opacity=".95"><circle cx="12" cy="35" r="8"/><circle cx="40" cy="35" r="8"/><path d="M12 35 20 22h14l6 13M20 22l7 13h13"/><path d="M25 21 30 9"/></g><g class="wheel"><circle cx="12" cy="35" r="8" stroke="#13232F" stroke-width="2.6"/><path d="M12 27v16M4 35h16" stroke="#13232F" stroke-width="1.2"/></g><g class="wheel"><circle cx="40" cy="35" r="8" stroke="#13232F" stroke-width="2.6"/><path d="M40 27v16M32 35h16" stroke="#13232F" stroke-width="1.2"/></g><path d="M12 35 20 22h14l6 13M20 22l7 13h13M33 22l2-4h4" stroke="#E15989" stroke-width="2.6"/><path d="M27 35 24 27l6-5" stroke="#13232F" stroke-width="4"/><path d="M24 20 29 10" stroke="#F7F4EE" stroke-width="7.5"/><path d="M24 20 29 10" stroke="#13232F" stroke-width="1.4" opacity=".35"/><path d="M29 12l6 7" stroke="#F7F4EE" stroke-width="3.6"/><circle cx="31" cy="6" r="4.2" fill="#F7F4EE" stroke="#13232F" stroke-width="1.4"/><path d="M27.5 5a4 4 0 0 1 7.5-1.5" stroke="#E15989" stroke-width="3"/></g></svg>';
-const WALK_SVG = '<svg viewBox="0 0 30 50" width="27" height="45" class="rider-walk"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="#fff" stroke-width="8" opacity=".95"><path d="M15 14v14"/><path class="leg-a" d="M15 28l-4 9 1 10"/><path class="leg-b" d="M15 28l4 9-1 10"/></g><path class="leg-a" d="M15 28l-4 9 1 10" stroke="#13232F" stroke-width="3.6"/><path class="leg-b" d="M15 28l4 9-1 10" stroke="#13232F" stroke-width="3.6"/><path class="arm-a" d="M15 16l-5 8" stroke="#F7F4EE" stroke-width="3.4"/><path d="M15 15v13" stroke="#F7F4EE" stroke-width="8"/><path d="M15 15v13" stroke="#13232F" stroke-width="1.2" opacity=".3"/><path d="M18.5 15l4 6-2 3" stroke="#E15989" stroke-width="3"/><path class="arm-b" d="M15 16l5 8" stroke="#F7F4EE" stroke-width="3.4"/><circle cx="15" cy="8" r="4.4" fill="#F7F4EE" stroke="#13232F" stroke-width="1.4"/><path d="M11 7a4.4 4.4 0 0 1 8.2-1.3" stroke="#4A3426" stroke-width="2.6"/></g></svg>';
-function stopRider(){ if(rider){ cancelAnimationFrame(rider.raf); rider.mk.remove(); rider = null; } window.GP3D?.setRoute(null); }
-function startRider(f, walk){
-  stopRider(); if(!f) return;
-  const g = f.geometry, lines = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
+/* велосипедисты на маршрутах: плоский значок едет по треку по кругу. В главе — по одному маршруту, в «Маршрутах» — по всем.
+   Вблизи в 3D их сменяют объёмные велосипедисты из scene3d.js, поэтому значки там прячутся. */
+let riders = [], riderRaf = 0;
+// велосипедист в белом круге: розовая рама, тёмный ездок в шлеме, колёса крутятся
+const BIKE_SVG = '<svg viewBox="0 0 48 48" width="40" height="40" class="rider-bike"><circle cx="24" cy="24" r="22.5" fill="#F7F4EE" stroke="#13232F" stroke-width="1.5"/>' +
+  '<g fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+  '<g class="wheel"><circle cx="14" cy="31" r="6.6" stroke="#13232F" stroke-width="2"/><path d="M14 24.4v13.2M7.4 31h13.2" stroke="#13232F" stroke-width=".9"/></g>' +
+  '<g class="wheel"><circle cx="34" cy="31" r="6.6" stroke="#13232F" stroke-width="2"/><path d="M34 24.4v13.2M27.4 31h13.2" stroke="#13232F" stroke-width=".9"/></g>' +
+  '<path d="M14 31h9l-3-10zM20 21h11l-8 10M31 21l3 10M31 21l1-3h3" stroke="#E15989" stroke-width="2.2"/><path d="M17.5 20h4.5" stroke="#13232F" stroke-width="2"/>' +
+  '<path d="M20 18.5l8-6.5" stroke="#13232F" stroke-width="3.4"/><path d="M27.5 12.5l5 5.5" stroke="#13232F" stroke-width="2.2"/><path d="M20 18.5l5 4.5-2 8" stroke="#13232F" stroke-width="2.6"/>' +
+  '<circle cx="30.6" cy="9" r="2.7" fill="#13232F" stroke="none"/><path d="M27.6 8.6a3.2 3.2 0 0 1 6.2-.4" stroke="#E15989" stroke-width="2"/></g></svg>';
+function stopRider(){ cancelAnimationFrame(riderRaf); riderRaf = 0; riders.forEach(r => r.mk.remove()); riders = []; window.GP3D?.setRoute(null); }
+function addRider(f, phase = 0){
+  const g = f && f.geometry; if(!g) return;
+  const lines = g.type === 'MultiLineString' ? g.coordinates : [g.coordinates];
   const pts = []; lines.forEach(l => l.forEach(c => { const q = pts[pts.length - 1]; if(!q || q[0] !== c[0] || q[1] !== c[1]) pts.push(c); }));
   if(pts.length < 2) return;
   const cum = [0]; for(let k = 1; k < pts.length; k++) cum.push(cum[k - 1] + kmBetween(pts[k - 1], pts[k]));
   const L = cum[cum.length - 1], dur = Math.max(22, Math.min(45, L * 1.4)) * 1000;
-  const el = document.createElement('div'); el.className = 'rider'; el.innerHTML = walk ? WALK_SVG : BIKE_SVG; el.title = walk ? 'Пешком по маршруту' : 'На велосипеде по маршруту';
-  const mk = new maplibregl.Marker({element:el}).setLngLat(pts[0]).addTo(map);
-  rider = {mk, raf:0}; const t0 = performance.now();
-  const step = now => { if(!rider) return;
-    const s = ((now - t0) % dur) / dur * L; let k = 1; while(k < cum.length - 1 && cum[k] < s) k++;
-    const a = pts[k - 1], b = pts[k], u = (s - cum[k - 1]) / ((cum[k] - cum[k - 1]) || 1);
-    mk.setLngLat([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]);
-    el.firstChild.style.transform = b[0] < a[0] ? 'scaleX(-1)' : '';
-    rider.raf = requestAnimationFrame(step); };
-  rider.raf = requestAnimationFrame(step);
+  const el = document.createElement('div'); el.className = 'rider'; el.innerHTML = BIKE_SVG; el.title = 'На велосипеде по маршруту' + (f.properties?.name ? ' «' + f.properties.name + '»' : '');
+  riders.push({mk:new maplibregl.Marker({element:el}).setLngLat(pts[0]).addTo(map), el, pts, cum, L, dur, t0:performance.now() - phase * dur});
 }
+function riderLoop(){
+  if(riderRaf) return;
+  const step = now => { if(!riders.length){ riderRaf = 0; return; }
+    const near = is3D && map.getZoom() >= 14.5;   // вблизи в 3D едут объёмные велосипедисты
+    riders.forEach(r => { r.el.style.display = near ? 'none' : ''; if(near) return;
+      const s = ((now - r.t0) % r.dur) / r.dur * r.L; let k = 1; while(k < r.cum.length - 1 && r.cum[k] < s) k++;
+      const a = r.pts[k - 1], b = r.pts[k], u = (s - r.cum[k - 1]) / ((r.cum[k] - r.cum[k - 1]) || 1);
+      r.mk.setLngLat([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]);
+      r.el.firstChild.style.transform = b[0] < a[0] ? 'scaleX(-1)' : ''; });
+    riderRaf = requestAnimationFrame(step); };
+  riderRaf = requestAnimationFrame(step);
+}
+function startRider(f){ stopRider(); if(!f) return; addRider(f); riderLoop(); }
+function startAllRiders(){ stopRider(); (D.routes?.features || []).forEach((f, i) => addRider(f, (i * 0.37) % 1)); riderLoop(); }
 function routeFocus(name){
   if(!name) stopRider();
   const f = name ? ['==',['get','name'],name] : null;
@@ -957,7 +970,7 @@ function applyStep(id, st){
   whenReady(() => {
     setShown(stepLayers(st)); clearViewshed(); setOpen('open'); routeFocus(st.route || null);
     if(st.route){ const f = (D.routes?.features || []).find(x => x.properties.name === st.route);
-      if(f) startRider(f, /^Пешком/.test((ROUTES[st.route] || [''])[0]));
+      if(f) startRider(f);
       if(f){ lastZoomKey = id + ':route:' + st.route; map.fitBounds(bboxOf({features:[f]}), {padding:viewPad(), maxZoom:13, duration:1600, pitch:camPitch(), essential:true}); }
       return; }
     const z = st.zoom || 'amphitheater_bound', key = id + ':' + z;
@@ -1797,7 +1810,7 @@ function renderRoutes(){
     <h2>Наши треки <span class="h-n">${R.length}</span></h2>
     <div class="rows">${rows}</div>`);
   // треки — тонкими бледными линиями, без тепловой карты (она слишком ярко «горела» поверх спутника)
-  whenReady(() => { setShown(['walking','routes','trail']); clearViewshed(); if(lastView !== 'routes') fitTo('bound', 9.6); });
+  whenReady(() => { setShown(['walking','routes','trail']); clearViewshed(); startAllRiders(); if(lastView !== 'routes') fitTo('bound', 9.6); });
 }
 function focusObject(key, i){
   const t = THEMES.find(x => x.items.some(it => it.key === key || (key.startsWith('landscape') && it.key === key)));
