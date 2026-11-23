@@ -180,6 +180,10 @@
   /* ---------- слой ---------- */
   let map, renderer, scene, camera, root, origin, scaleM, enabled = false;
   const marks = [], actors = []; let lastPick = 0, route = null, repaintT = 0;
+  // «часы» велосипедистов: идут быстрее, когда карта далеко, — издалека ездок проезжает маршрут примерно за полминуты,
+  // вблизи едет медленнее, но заметно. Все ездоки считают путь по одним часам, поэтому при смене масштаба не прыгают.
+  let rideClock = 0, rideT = 0;
+  function tickRide(t, mpp){ const dt = rideT ? Math.min(0.25, (t - rideT) / 1000) : 0; rideT = t; rideClock += dt * Math.min(150, Math.max(2, 20 * mpp / 5.5)); }
   const is3d = () => document.body.classList.contains('is3d');
   const lc = (lng, lat) => maplibregl.MercatorCoordinate.fromLngLat([lng, lat], 0);
   const elev = (lng, lat) => { try{ return map.queryTerrainElevation([lng, lat]) || 0; }catch(e){ return 0; } };
@@ -192,7 +196,7 @@
   // Фигурки — в масштабе домов: ×2 к настоящему росту (человек ≈ 3,5 м против домов в 15–25 м), без увеличения при отдалении.
   // Появляются, только когда карту приблизили к месту. Каждая — только у «своего» места:
   // кони — у конных клубов, мотоциклы — у мототрасс, лыжники — на склонах, параплан — у парадромов и парапланерных клубов.
-  const FRAME_MS = matchMedia('(max-width:820px)').matches ? 100 : 66;
+  const FRAME_MS = matchMedia('(max-width:820px)').matches ? 66 : 42;   // ~15 / ~24 кадра в секунду
   const FIG = 2, FIG_BIG = {'Конный клуб':4, 'велосипед':4, 'пешком':4};   // кони и велосипедисты на маршрутах — крупнее, чтобы их было видно
   const figOf = kind => FIG_BIG[kind] || FIG;
   const KINDS = {
@@ -203,7 +207,7 @@
   };
   const STROLL = {road:['path','footway','pedestrian','service','minor'], speed:1.2};
   // убрать фигурку и освободить её геометрию в видеопамяти (материалы общие — их не трогаем)
-  function drop(w){ root.remove(w); w.traverse(o => { if(o.geometry) o.geometry.dispose(); }); }
+  function drop(w){ if(w.parent) w.parent.remove(w); w.traverse(o => { if(o.geometry) o.geometry.dispose(); }); }
 
   /* ---------- дороги: фигурка ездит по ближайшей подходящей дороге OpenStreetMap ---------- */
   const KX = 111320 * Math.cos(59.95 * Math.PI / 180), KY = 110540;   // метров в градусе долготы и широты
@@ -271,7 +275,7 @@
     if(!flat && z >= 15.5 && on.includes('estate')) (D.estate?.features || []).forEach((f, i) => { const t = f.properties.type; if(t === 'Дача' || t === 'Дом') return; const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'e' + i, kind:'усадьба', x, y}); });
     // велосипедисты на наших маршрутах. window.GP_RIDE (из app.js): '*' — все маршруты (вкладка «Маршруты»), [имя] — один (глава).
     // Издалека — по одному на маршрут, вблизи — один на каждые ~2,5 км. Без GP_RIDE — только в 3D вблизи, по маршрутам и тропе на карте.
-    let nt = 0; const RIDE = window.GP_RIDE, lim = innerWidth < 820 ? 6 : 12, push = (T0, j, n) => { const off = j / n * 2 * T0.P.L, q = along(T0.P, performance.now() / 1000 * T0.speed + off);
+    let nt = 0; const RIDE = window.GP_RIDE, lim = innerWidth < 820 ? 6 : 12, push = (T0, j, n) => { const off = j / n * 2 * T0.P.L, q = along(T0.P, rideClock * T0.speed + off);
       if(nt < lim && b.contains([q.lng, q.lat])){ nt++; want.push({id:T0.id + '_' + j + '/' + n, kind:'велосипед', x:q.lng, y:q.lat, track:{P:T0.P, off, speed:T0.speed}}); } };
     if(RIDE){
       const mine = trackPaths().filter(T0 => T0.layer === 'routes' && (RIDE === '*' || RIDE.includes(T0.name)));
@@ -284,7 +288,7 @@
     want.slice(0, cap).forEach(w => { if(actors.some(a => a.id === w.id)) return;
       const m = w.kind === 'усадьба' ? stroller() : w.kind === 'велосипед' ? cyclist() : w.kind === 'пешком' ? walker() : KINDS[w.kind].make(), wrap = upright(m.g);
       wrap.userData.yaw.add(shadowDisc(w.kind === 'Парапланеризм' ? 0 : w.kind === 'Конный клуб' ? 1.3 : w.kind === 'велосипед' ? 0.7 : 0.5));
-      wrap.scale.setScalar(figOf(w.kind)); root.add(wrap); actors.push({id:w.id, kind:w.kind, x:w.x, y:w.y, m, w:wrap, ph:Math.random() * 100, tries:0, track:w.track}); });
+      wrap.scale.setScalar(figOf(w.kind)); (w.track ? ovRoot() : root).add(wrap); actors.push({id:w.id, kind:w.kind, x:w.x, y:w.y, m, w:wrap, ph:Math.random() * 100, tries:0, track:w.track}); });
     // дорогу ищем, когда её плитки уже загрузились (не нашли — попробуем на следующем круге, всего до 6 раз)
     // не больше двух поисков за круг, до трёх попыток на фигурку — чтобы не было рывков
     let budget = 2;
@@ -314,7 +318,7 @@
       if(R.walk) walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.pedal(-t / 160); }
       return {lng:p[0] + (q[0] - p[0]) * u, lat:p[1] + (q[1] - p[1]) * u, h:0, yaw:Math.atan2((q[1] - p[1]) * 2, q[0] - p[0])};
     }
-    if(a.track){ const q = along(a.track.P, t / 1000 * a.track.speed + a.track.off); a.x = q.lng; a.y = q.lat;   // позиция нужна и для проверки «в кадре»
+    if(a.track){ const q = along(a.track.P, rideClock * a.track.speed + a.track.off); a.x = q.lng; a.y = q.lat;   // позиция нужна и для проверки «в кадре»
       if(a.kind === 'пешком') walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.pedal(-t / 160); }
       return {...q, h:0}; }
     if(a.kind === 'Парапланеризм'){ const w = t / 14000 + ph, r = 70;   // кружит над стартом в ~50 м над землёй, с креном в вираже
@@ -349,33 +353,67 @@
       LANDMARKS.forEach(([name, make, x, y, rot]) => { const w = upright(make()); w.userData.yaw.rotation.z = rot * Math.PI / 180; root.add(w); marks.push({w, x, y}); });
     },
     render(gl, args){
-      // доминанты и фигурки у клубов — только в 3D; велосипедисты на маршрутах — и на плоской карте
-      const on = is3d(), ride = !!window.GP_RIDE;
-      if(!on && !ride && !actors.length){ if(enabled){ root.visible = false; enabled = false; } return; }
-      enabled = true; root.visible = true; marks.forEach(k => k.w.visible = on);
-      const t = performance.now(), mpp = metersPerPx(), pitch = map.getPitch();
-      // ездок издалека — ~48 px на экране, вблизи — ×4 к росту (в масштабе домов)
-      const RS = Math.min(600, Math.max(figOf('велосипед'), 48 * mpp / 1.9));
-      // когда камера смотрит почти сверху, велосипедист «ложится» боком к зрителю — иначе сверху виден только штрих
-      const lie = Math.PI / 2 * Math.min(1, Math.max(0, 1 - pitch / 50));
-      if(t - lastPick > 700){ lastPick = t; setTimeout(pickActors, 0); }   // подбор фигурок — вне кадра отрисовки
-      // высота земли под доминантами меняется только с усилением рельефа — уточняем раз в полсекунды
-      if(on) marks.forEach(k => { if(k.z == null || t - (k.zt || 0) > 500){ k.z = elev(k.x, k.y); k.zt = t; } place(k.w, k.x, k.y, k.z); });
-      actors.forEach(a => { const s = behave(a, t); let lng = s.lng, lat = s.lat; if(lng == null) [lng, lat] = ofs(a.x, a.y, s.dx, s.dy);
-        place(a.w, lng, lat, elev(lng, lat) + (s.h || 0));
-        const y = a.w.userData.yaw;
-        if(a.track){ a.w.scale.setScalar(RS); y.rotation.order = 'ZYX'; y.rotation.set(-lie, 0, s.yaw || 0); }
-        else { y.rotation.z = s.yaw || 0; y.rotation.x = s.tilt || 0; } });
+      const on = is3d(), t = performance.now();
+      // матрица камеры карты — её же берёт слой велосипедистов поверх карты
       const mm = new T.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
-      const l = new T.Matrix4().makeTranslation(origin.x, origin.y, origin.z).scale(new T.Vector3(scaleM, -scaleM, scaleM));
-      camera.projectionMatrix = mm.multiply(l);
+      proj = mm.multiply(new T.Matrix4().makeTranslation(origin.x, origin.y, origin.z).scale(new T.Vector3(scaleM, -scaleM, scaleM)));
+      if(t - lastPick > 700){ lastPick = t; setTimeout(pickActors, 0); }   // подбор фигурок — вне кадра отрисовки
+      // велосипедисты — на своём холсте поверх карты: двигаем вместе с картой в этом же кадре
+      if(window.GP_RIDE || actors.some(a => a.track)) drawRide(t);
+      // доминанты и фигурки у клубов — только в 3D, в самой карте (чтобы прятались за домами и холмами)
+      if(!on){ if(enabled){ root.visible = false; enabled = false; } return; }
+      enabled = true; root.visible = true;
+      marks.forEach(k => { if(k.z == null || t - (k.zt || 0) > 500){ k.z = elev(k.x, k.y); k.zt = t; } place(k.w, k.x, k.y, k.z); });
+      const club = actors.filter(a => !a.track);
+      club.forEach(a => { const s = behave(a, t); let lng = s.lng, lat = s.lat; if(lng == null) [lng, lat] = ofs(a.x, a.y, s.dx, s.dy);
+        place(a.w, lng, lat, elev(lng, lat) + (s.h || 0)); const y = a.w.userData.yaw; y.rotation.z = s.yaw || 0; y.rotation.x = s.tilt || 0; });
+      camera.projectionMatrix = proj;
       renderer.resetState(); renderer.render(scene, camera);
       // three.js оставляет свои привязки WebGL — снимаем их и просим MapLibre заново выставить своё состояние
       try{ const g2 = gl; g2.bindVertexArray && g2.bindVertexArray(null); g2.bindBuffer(g2.ARRAY_BUFFER, null); g2.bindBuffer(g2.ELEMENT_ARRAY_BUFFER, null); g2.useProgram(null); }catch(e){}
       try{ map.painter.context.setDirty(); }catch(e){}
-      // анимация персонажей — ~15 кадров в секунду (на телефоне ~10), пока карту двигают — она и так перерисовывается и только когда вкладка видна: карту не перерисовываем без нужды
-      // (только если хоть одна фигурка в кадре — иначе карта стоит и не грузит видеокарту)
-      if(actors.length && !repaintT && document.visibilityState === 'visible' && (() => { const b = map.getBounds(); return actors.some(a => a.route || b.contains([a.x, a.y])); })()) repaintT = setTimeout(() => { repaintT = 0; if(!map.isMoving()) map.triggerRepaint(); }, FRAME_MS);
+      // фигурки у клубов (только 3D, вблизи) — ~15 кадров/с и только если хоть одна в кадре
+      if(club.length && !repaintT && document.visibilityState === 'visible' && (() => { const b = map.getBounds(); return club.some(a => b.contains([a.x, a.y])); })()) repaintT = setTimeout(() => { repaintT = 0; if(!map.isMoving()) map.triggerRepaint(); }, 100);   // перерисовка всей карты — не чаще 10 раз в секунду
     }};
+
+  /* ---------- слой велосипедистов: отдельный прозрачный холст поверх карты ----------
+     Анимация перерисовывает только его, карта со спутником и слоями стоит. Раньше ради движения фигурок
+     перерисовывалась вся карта 15 раз в секунду — отсюда и лаги. */
+  let ov = null, ovR = null, ovScene = null, ovRootG = null, ovCam = null, proj = null, rideTimer = 0, ovClean = true;
+  function ovRoot(){
+    if(ovRootG) return ovRootG;
+    const box0 = map.getCanvasContainer(); ov = document.createElement('canvas'); ov.className = 'ride3d';
+    ov.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none';
+    box0.appendChild(ov);
+    ovR = new T.WebGLRenderer({canvas:ov, alpha:true, antialias:false, powerPreference:'low-power'}); ovR.setClearColor(0x000000, 0);
+    ovR.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const fit = () => { const c = map.getCanvas(); ovR.setSize(c.clientWidth, c.clientHeight, false); ovClean = false; }; fit(); map.on('resize', fit);
+    ovScene = new T.Scene(); ovCam = new T.Camera(); ovRootG = new T.Group(); ovScene.add(ovRootG);
+    ovScene.add(new T.HemisphereLight('#ffffff', '#55606a', 0.95)); const sun = new T.DirectionalLight('#fff4e0', 0.85); sun.position.set(-0.6, -0.8, 1.2); ovScene.add(sun);
+    return ovRootG;
+  }
+  function drawRide(t){
+    const riders = actors.filter(a => a.track);
+    if(!riders.length || !proj || !ovR){ if(ovR && !ovClean){ ovR.clear(); ovClean = true; } if(window.GP_RIDE) rideLoop(); return; }
+    const mpp = metersPerPx(), pitch = map.getPitch(); tickRide(t, mpp);
+    // ездок издалека — ~48 px на экране, вблизи — ×4 к росту (в масштабе домов)
+    const RS = Math.min(600, Math.max(figOf('велосипед'), 48 * mpp / 1.9));
+    // когда камера смотрит почти сверху, велосипедист «ложится» боком к зрителю — иначе сверху виден только штрих
+    const lie = Math.PI / 2 * Math.min(1, Math.max(0, 1 - pitch / 50));
+    const b = map.getBounds(); let any = false;
+    riders.forEach(a => { const s = behave(a, t); place(a.w, s.lng, s.lat, is3d() ? elev(s.lng, s.lat) : 0);
+      a.w.scale.setScalar(RS); const y = a.w.userData.yaw; y.rotation.order = 'ZYX'; y.rotation.set(-lie, 0, s.yaw || 0); if(b.contains([s.lng, s.lat])) any = true; });
+    if(any || !ovClean){ ovCam.projectionMatrix = proj; ovR.render(ovScene, ovCam); ovClean = !any; }
+    rideLoop();
+  }
+  // ~24 кадра/с только для холста велосипедистов; во фоновой вкладке — стоп
+  function rideLoop(){
+    if(rideTimer) return;
+    rideTimer = setTimeout(() => { rideTimer = 0; if(!map) return;
+      const live = window.GP_RIDE || actors.some(a => a.track);
+      if(!live){ if(ovR && !ovClean){ ovR.clear(); ovClean = true; } return; }
+      const t = performance.now(); if(t - lastPick > 700){ lastPick = t; pickActors(); }
+      if(document.visibilityState === 'visible') drawRide(t); else rideLoop(); }, FRAME_MS);
+  }
   window.GP3D = {layer, count:() => actors.map(a => a.kind), setRoute:(f, walk) => { if(root) setRoute(f, walk); else window.GP3D._pending = [f, walk]; }};
 })();
