@@ -609,7 +609,7 @@ let scene3dState = 0;   // 0 — не грузили, 1 — грузится, 2 
 function load3D(){
   if(scene3dState) return; scene3dState = 1;
   const add = src => new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(src); document.body.appendChild(s); });
-  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123e')).then(() => whenReady(() => {
+  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123f')).then(() => whenReady(() => {
     scene3dState = 2;
     if(window.GP3D && !map.getLayer('scene3d')) try{ map.addLayer(GP3D.layer, map.getLayer('infra-place') ? 'infra-place' : undefined); if(GP3D._pending) GP3D.setRoute(...GP3D._pending); map.triggerRepaint(); }catch(e){ console.warn('[3D]', e); }
   })).catch(e => console.warn('[3D] не загрузилось:', e));

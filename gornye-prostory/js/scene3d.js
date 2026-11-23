@@ -172,6 +172,7 @@
   // Фигурки — в масштабе домов: ×2 к настоящему росту (человек ≈ 3,5 м против домов в 15–25 м), без увеличения при отдалении.
   // Появляются, только когда карту приблизили к месту. Каждая — только у «своего» места:
   // кони — у конных клубов, мотоциклы — у мототрасс, лыжники — на склонах, параплан — у парадромов и парапланерных клубов.
+  const FRAME_MS = matchMedia('(max-width:820px)').matches ? 100 : 66;
   const FIG = 2, FIG_BIG = {'Конный клуб':4, 'велосипед':4, 'пешком':4};   // кони и велосипедисты на маршрутах — крупнее, чтобы их было видно
   const figOf = kind => FIG_BIG[kind] || FIG;
   const KINDS = {
@@ -187,13 +188,26 @@
   /* ---------- дороги: фигурка ездит по ближайшей подходящей дороге OpenStreetMap ---------- */
   const KX = 111320 * Math.cos(59.95 * Math.PI / 180), KY = 110540;   // метров в градусе долготы и широты
   const paths = new Map();   // id места → отрезок дороги (кэш, чтобы не искать заново)
+  // Дороги берём одним запросом на несколько секунд и только нужных классов: querySourceFeatures дорогой,
+  // раньше он шёл для каждой фигурки отдельно и подвешивал карту.
+  const ROAD_CLASSES = ['path','footway','pedestrian','track','service','minor','raceway'];
+  let roadCache = null, roadT = 0;
+  function roads(){
+    const now = performance.now(); if(roadCache && now - roadT < 5000) return roadCache; roadT = now;
+    try{ roadCache = (map.querySourceFeatures('omt', {sourceLayer:'transportation', filter:['in',['get','class'],['literal',ROAD_CLASSES]]}) || [])
+      .map(f => { const g = f.geometry; return {cls:f.properties.class, lines:!g ? [] : g.type === 'MultiLineString' ? g.coordinates : g.type === 'LineString' ? [g.coordinates] : []}; }); }
+    catch(e){ roadCache = []; }
+    return roadCache;
+  }
   function findPath(x, y, classes, maxD = 220){
-    let fs; try{ fs = map.querySourceFeatures('omt', {sourceLayer:'transportation'}); }catch(e){ return null; }
-    if(!fs || !fs.length) return null;
+    const fs = roads(); if(!fs.length) return null;
+    // грубый отсев по рамке ±maxD, потом точное расстояние до вершин
+    const dLng = maxD / KX, dLat = maxD / KY;
     let best = null, bd = maxD;
-    fs.forEach(f => { if(!classes.includes(f.properties.class)) return; const g = f.geometry; if(!g) return;
-      (g.type === 'MultiLineString' ? g.coordinates : g.type === 'LineString' ? [g.coordinates] : []).forEach(line => {
-        for(let k = 0; k < line.length; k++){ const d = Math.hypot((line[k][0] - x) * KX, (line[k][1] - y) * KY); if(d < bd){ bd = d; best = {line, k}; } } }); });
+    fs.forEach(f => { if(!classes.includes(f.cls)) return;
+      f.lines.forEach(line => {
+        for(let k = 0; k < line.length; k++){ const q = line[k]; if(Math.abs(q[0] - x) > dLng || Math.abs(q[1] - y) > dLat) continue;
+          const d = Math.hypot((q[0] - x) * KX, (q[1] - y) * KY); if(d < bd){ bd = d; best = {line, k}; } } }); });
     if(!best) return null;
     // вокруг ближайшей точки берём ~250 м дороги в обе стороны — по ним фигурка ездит туда и обратно
     const {line, k} = best, pts = [line[k]];
@@ -246,9 +260,12 @@
       wrap.userData.yaw.add(shadowDisc(w.kind === 'Парапланеризм' ? 0 : w.kind === 'Конный клуб' ? 1.3 : w.kind === 'велосипед' ? 0.7 : 0.5));
       wrap.scale.setScalar(figOf(w.kind)); root.add(wrap); actors.push({id:w.id, kind:w.kind, x:w.x, y:w.y, m, w:wrap, ph:Math.random() * 100, tries:0, track:w.track}); });
     // дорогу ищем, когда её плитки уже загрузились (не нашли — попробуем на следующем круге, всего до 6 раз)
+    // не больше двух поисков за круг, до трёх попыток на фигурку — чтобы не было рывков
+    let budget = 2;
     actors.forEach(a => { if(a.route || a.track || a.path !== undefined) return; const spec = a.kind === 'усадьба' ? STROLL : KINDS[a.kind]; if(!spec || !spec.road){ a.path = null; return; }
       if(paths.has(a.id)){ a.path = paths.get(a.id); return; }
-      const P = findPath(a.x, a.y, spec.road, a.kind === 'усадьба' ? 150 : 220); if(P){ paths.set(a.id, P); a.path = P; } else if(++a.tries >= 6) a.path = null; });
+      if(budget-- <= 0) return;
+      const P = findPath(a.x, a.y, spec.road, a.kind === 'усадьба' ? 150 : 220); if(P){ paths.set(a.id, P); a.path = P; } else if(++a.tries >= 3) a.path = null; });
   }
   function setRoute(f, walk){
     const old = actors.findIndex(a => a.route); if(old >= 0){ drop(actors[old].w); actors.splice(old, 1); }
@@ -309,7 +326,7 @@
       const on = is3d(); if(!on){ if(enabled){ root.visible = false; enabled = false; } return; }
       enabled = true; root.visible = true;
       const t = performance.now();
-      if(t - lastPick > 600){ lastPick = t; pickActors(); }
+      if(t - lastPick > 700){ lastPick = t; setTimeout(pickActors, 0); }   // подбор фигурок — вне кадра отрисовки
       // высота земли под доминантами меняется только с усилением рельефа — уточняем раз в полсекунды
       marks.forEach(k => { if(k.z == null || t - (k.zt || 0) > 500){ k.z = elev(k.x, k.y); k.zt = t; } place(k.w, k.x, k.y, k.z); });
       actors.forEach(a => { const s = behave(a, t); let lng = s.lng, lat = s.lat; if(lng == null) [lng, lat] = ofs(a.x, a.y, s.dx, s.dy);
@@ -322,9 +339,9 @@
       // three.js оставляет свои привязки WebGL — снимаем их и просим MapLibre заново выставить своё состояние
       try{ const g2 = gl; g2.bindVertexArray && g2.bindVertexArray(null); g2.bindBuffer(g2.ARRAY_BUFFER, null); g2.bindBuffer(g2.ELEMENT_ARRAY_BUFFER, null); g2.useProgram(null); }catch(e){}
       try{ map.painter.context.setDirty(); }catch(e){}
-      // анимация персонажей — ~30 кадров в секунду и только когда вкладка видна: карту не перерисовываем без нужды
+      // анимация персонажей — ~15 кадров в секунду (на телефоне ~10), пока карту двигают — она и так перерисовывается и только когда вкладка видна: карту не перерисовываем без нужды
       // (только если хоть одна фигурка в кадре — иначе карта стоит и не грузит видеокарту)
-      if(actors.length && !repaintT && document.visibilityState === 'visible' && (() => { const b = map.getBounds(); return actors.some(a => a.route || b.contains([a.x, a.y])); })()) repaintT = setTimeout(() => { repaintT = 0; map.triggerRepaint(); }, 33);
+      if(actors.length && !repaintT && document.visibilityState === 'visible' && (() => { const b = map.getBounds(); return actors.some(a => a.route || b.contains([a.x, a.y])); })()) repaintT = setTimeout(() => { repaintT = 0; if(!map.isMoving()) map.triggerRepaint(); }, FRAME_MS);
     }};
   window.GP3D = {layer, count:() => actors.map(a => a.kind), setRoute:(f, walk) => { if(root) setRoute(f, walk); else window.GP3D._pending = [f, walk]; }};
 })();
