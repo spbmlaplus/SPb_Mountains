@@ -1781,11 +1781,12 @@ function renderRoutes(){
   panel(topLabel(ICON.map, 'Маршруты'), `
     <h1>Маршруты</h1>
     <p class="lead">Большая горная тропа и девять наших треков по высотам вокруг города.</p>
-    <p>На общем виде карта показывает плотность: чем ярче пятно, тем гуще тропы и чаще здесь ходят и ездят. Приблизьте карту — пятна раскроются в отдельные тропы, розовым выделены наши маршруты.</p>
+    <p>Оранжевые линии — тропы и веломаршруты: где их гуще, туда ходят и ездят чаще. Розовым выделены наши маршруты.</p>
     <a class="row" href="#/story/trail/1"><span class="row-main"><b>Большая горная тропа</b><small>Как команда МЛА+ нашла эти виды и как их связать в один путь</small></span></a>
     <h2>Наши треки <span class="h-n">${R.length}</span></h2>
     <div class="rows">${rows}</div>`);
-  whenReady(() => { buildTrackHeat(); setShown(['track_heat','walking','routes','trail']); clearViewshed(); if(lastView !== 'routes') fitTo('bound', 9.6); });
+  // треки — тонкими бледными линиями, без тепловой карты (она слишком ярко «горела» поверх спутника)
+  whenReady(() => { setShown(['walking','routes','trail']); clearViewshed(); if(lastView !== 'routes') fitTo('bound', 9.6); });
 }
 function focusObject(key, i){
   const t = THEMES.find(x => x.items.some(it => it.key === key || (key.startsWith('landscape') && it.key === key)));
