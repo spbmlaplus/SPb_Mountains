@@ -242,7 +242,12 @@ map.once('style.load', () => {
   add('mask', [{id:'mask', type:'fill', paint:{'fill-color':T('#ffffff', '#060d13'), 'fill-opacity':T(0.6, 0.5)}}]);
   // дома в 3D: коробки по высоте из OpenStreetMap, проявляются с 13-го масштаба
   // дома OSM выше 250 м (Лахта-центр) не рисуем — вместо них подробная модель из scene3d.js
-  map.addLayer(resolve({id:'bld', type:'fill-extrusion', source:'omt', 'source-layer':'building', minzoom:13, filter:['<',['coalesce',['get','render_height'],0],250],
+  map.addLayer(resolve({id:'bld', type:'fill-extrusion', source:'omt', 'source-layer':'building', minzoom:13,
+    // под объёмными моделями (Исаакий, Петропавловский и Смольный соборы) дома OSM не рисуем, чтобы не было двойных зданий
+    filter:['all',['<',['coalesce',['get','render_height'],0],250],
+      ['>',['distance',{type:'Point',coordinates:[30.3060,59.9341]}],45],
+      ['>',['distance',{type:'Point',coordinates:[30.3166,59.9502]}],25],
+      ['>',['distance',{type:'Point',coordinates:[30.3954,59.9488]}],25]],
     paint:{'fill-extrusion-color':['interpolate',['linear'],['coalesce',['get','render_height'],9],3,'#d8d0c2',20,'#e6dccb',45,'#f0c9cf',90,'#e98fac'],
       'fill-extrusion-height':['interpolate',['linear'],['zoom'],13,0,14.2,['coalesce',['get','render_height'],9]],
       'fill-extrusion-base':['interpolate',['linear'],['zoom'],13,0,14.2,['coalesce',['get','render_min_height'],0]],
@@ -262,7 +267,7 @@ map.once('style.load', () => {
   /* --- приглушение фона: тема на карте — ярче, остальное темнее --- */
   map.addLayer({id:'dim', type:'background', layout:{visibility:'none'}, paint:{'background-color':'#05090d','background-opacity':0.45}});
   /* --- площади --- */
-  add('mount_polygon', [{id:'mount_polygon-f', type:'fill', paint:{'fill-pattern':T(pInk, pCream),'fill-opacity':T(0.35, 0.4)}},
+  add('mount_polygon', [{id:'mount_polygon-f', type:'fill', paint:{'fill-pattern':T(pInk, pCream),'fill-opacity':['interpolate',['linear'],['zoom'],12,T(0.35, 0.4),13.5,0]}},
                         {id:'mount_polygon-l', type:'line', paint:{'line-color':INK,'line-opacity':0.6,'line-width':0.9}}]);
   // ярус: маска (всё, кроме яруса) темнеет, сам ярус — цветной с контуром. Маска в данных — прямоугольник с дырами-ярусами.
   [['mask_stage',TIERC[0]],['mask_parter',TIERC[1]],['mask_belletazh',TIERC[2]],['mask_balcon',TIERC[3]]].forEach(([k, col]) => {
@@ -352,7 +357,8 @@ map.once('style.load', () => {
   // сцена и секторы амфитеатра (стиль QGIS sectors_level): секторы — тонкий пунктир, сцена (type_gis = 1) — косая штриховка
   if(D.sectors){ map.addSource('seclev', {type:'geojson', data:D.sectors}); GROUPS.seclev = ['seclev-scene','seclev-l'];
     map.addLayer(resolve({id:'seclev-scene', type:'fill', source:'seclev', filter:['==',['get','type_gis'],1], layout:{visibility:'none'},
-      paint:{'fill-pattern':T(ensurePattern('hatch', '#327E69'), ensurePattern('hatch', '#ffffff')),'fill-opacity':T(0.6, 0.45)}}));
+      paint:{'fill-pattern':T(ensurePattern('hatch', '#327E69'), ensurePattern('hatch', '#ffffff')),
+        'fill-opacity':['interpolate',['linear'],['zoom'],12,T(0.6, 0.45),13.5,0]}}));   // вблизи штриховка ложится поверх домов мелкой рябью — гасим
     map.addLayer(resolve({id:'seclev-scene-l', type:'line', source:'seclev', filter:['==',['get','type_gis'],1], layout:{visibility:'none'},
       paint:{'line-color':T('#327E69', '#ffffff'),'line-opacity':0.8,'line-width':1.4}}));
     map.addLayer(resolve({id:'seclev-l', type:'line', source:'seclev', layout:{visibility:'none'},
@@ -603,7 +609,7 @@ let scene3dState = 0;   // 0 — не грузили, 1 — грузится, 2 
 function load3D(){
   if(scene3dState) return; scene3dState = 1;
   const add = src => new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(src); document.body.appendChild(s); });
-  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123')).then(() => whenReady(() => {
+  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123c')).then(() => whenReady(() => {
     scene3dState = 2;
     if(window.GP3D && !map.getLayer('scene3d')) try{ map.addLayer(GP3D.layer, map.getLayer('infra-place') ? 'infra-place' : undefined); if(GP3D._pending) GP3D.setRoute(...GP3D._pending); map.triggerRepaint(); }catch(e){ console.warn('[3D]', e); }
   })).catch(e => console.warn('[3D] не загрузилось:', e));
@@ -939,7 +945,7 @@ function focusVp(codes){
   map.setPaintProperty('vp_old', 'icon-opacity', on ? ['case', on, 1, 0.22] : hov(0.95, 1));
   if(map.getLayer('lab-vp_old')) map.setPaintProperty('lab-vp_old', 'text-opacity', on ? ['case', on, 1, 0] : 1);
   // сцена при просмотре точек — только контуром, без штриховки
-  if(map.getLayer('seclev-scene')) map.setPaintProperty('seclev-scene', 'fill-opacity', codes ? 0 : T(0.6, 0.45));
+  if(map.getLayer('seclev-scene')) map.setPaintProperty('seclev-scene', 'fill-opacity', codes ? 0 : ['interpolate',['linear'],['zoom'],12,base === 'sat' ? 0.45 : 0.6,13.5,0]);
   if(map.getLayer('seclev-scene-l')) map.setLayoutProperty('seclev-scene-l', 'visibility', codes && map.getLayoutProperty('seclev-l', 'visibility') === 'visible' ? 'visible' : 'none');
 }
 // поля, которые видно: со всех точек, с возвышенности или с одной точки
