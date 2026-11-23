@@ -40,13 +40,33 @@
   const walkCycle = (P, t, amp = 0.55) => { const a = Math.sin(t) * amp; P.L.rotation.z = a; P.R.rotation.z = -a; P.A.rotation.z = -a * 0.8; P.B.rotation.z = a * 0.8; };
   const seat = (P, legsA = 1.2) => { P.L.rotation.z = legsA; P.R.rotation.z = legsA; P.A.rotation.z = 0.9; P.B.rotation.z = 0.9; };
   function wheel(r){ const w = new T.Mesh(new T.TorusGeometry(r, 0.045, 6, 18), M.ink); return w; }
+  // велосипедист: рама и колёса в настоящих пропорциях, ездок с наклоном вперёд, в розовой веломайке и шлеме; ноги крутят педали
   function cyclist(){
-    const g = new T.Group(), w1 = at(wheel(0.34), 0.55, 0.34, 0), w2 = at(wheel(0.34), -0.55, 0.34, 0);
-    g.add(w1, w2);
-    const bar = (x1, y1, x2, y2) => { const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), m = box(len, 0.05, 0.05, M.pink); m.position.set((x1 + x2) / 2, (y1 + y2) / 2, 0); m.rotation.z = Math.atan2(dy, dx); g.add(m); };
-    bar(-0.55, 0.34, -0.05, 0.85); bar(-0.05, 0.85, 0.45, 0.9); bar(0.45, 0.9, 0.55, 0.34); bar(-0.55, 0.34, 0.05, 0.36); bar(0.05, 0.36, -0.05, 0.85); bar(0.45, 0.9, 0.42, 1.05);
-    const P = person(); P.g.position.set(-0.12, 0.05, 0); P.g.rotation.z = -0.35; seat(P, 1.0); P.A.rotation.z = 1.25; P.B.rotation.z = 1.25; g.add(P.g);
-    return {g, P, w1, w2};
+    const g = new T.Group(), BB = [0, 0.3], HIP = [-0.2, 0.96], SH = [0.2, 1.36], HAND = [0.46, 1.0];
+    const seg = (m, th, z = 0) => { const b = box(1, th, th, m); b.position.z = z; g.add(b); return b; };
+    const put = (b, p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1]; b.position.x = (p[0] + q[0]) / 2; b.position.y = (p[1] + q[1]) / 2; b.scale.x = Math.hypot(dx, dy); b.rotation.z = Math.atan2(dy, dx); return b; };
+    const w1 = at(wheel(0.34), 0.53, 0.34, 0), w2 = at(wheel(0.34), -0.53, 0.34, 0); g.add(w1, w2);
+    // рама: задняя вилка, подседельная и нижняя трубы, верхняя труба, передняя вилка, руль
+    [[[-0.53, 0.34], BB], [[-0.53, 0.34], [-0.17, 0.86]], [BB, [-0.17, 0.86]], [BB, [0.4, 0.84]], [[-0.17, 0.86], [0.4, 0.86]], [[0.4, 0.86], [0.53, 0.34]], [[0.4, 0.86], [0.44, 0.98]]]
+      .forEach(([p, q]) => put(seg(M.pink, 0.045), p, q));
+    g.add(at(box(0.24, 0.05, 0.11, M.ink), -0.2, 0.9, 0), at(box(0.05, 0.05, 0.46, M.ink), 0.45, 0.99, 0));
+    // ездок
+    const torso = put(seg(M.pink, 0.2), HIP, SH); torso.scale.z = 1.4;
+    g.add(at(sph(0.11, M.white), 0.31, 1.5, 0));
+    const helmet = new T.Mesh(new T.SphereGeometry(0.125, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), M.pink); helmet.position.set(0.3, 1.53, 0); helmet.rotation.z = -0.35; g.add(helmet);
+    [0.17, -0.17].forEach(z => { const arm = seg(M.white, 0.08, z); put(arm, SH, HAND); });
+    const legs = [1, -1].map(sd => ({sd, th:seg(M.ink, 0.13, sd * 0.1), sh:seg(M.ink, 0.1, sd * 0.1), cr:seg(M.ink, 0.03, sd * 0.06)}));
+    const L1 = 0.46, L2 = 0.45;
+    function pedal(a){
+      legs.forEach(l => { const ang = a + (l.sd > 0 ? 0 : Math.PI), P = [BB[0] + Math.cos(ang) * 0.17, BB[1] + Math.sin(ang) * 0.17];
+        put(l.cr, BB, P);
+        let dx = P[0] - HIP[0], dy = P[1] - HIP[1], d = Math.min(Math.hypot(dx, dy), L1 + L2 - 0.01); const ux = dx / Math.hypot(dx, dy), uy = dy / Math.hypot(dx, dy);
+        const k = (L1 * L1 - L2 * L2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, L1 * L1 - k * k));
+        const K = [HIP[0] + ux * k - uy * h, HIP[1] + uy * k + ux * h];   // колено — вперёд по ходу
+        put(l.th, HIP, K); put(l.sh, K, [HIP[0] + ux * d, HIP[1] + uy * d]); });
+    }
+    pedal(0);
+    return {g, w1, w2, pedal};
   }
   function horseRider(){
     const g = new T.Group(), h = new T.Group();
@@ -233,9 +253,9 @@
       for(let j = 1; j < line.length; j++) cum.push(cum[j - 1] + Math.hypot((line[j][0] - line[j - 1][0]) * KX, (line[j][1] - line[j - 1][1]) * KY));
       return cum[cum.length - 1] > 50 ? {pts:line, cum, L:cum[cum.length - 1]} : null; };
     // все ездоки — велосипедисты, в том числе на пеших маршрутах
-    const add = (layer, id, line) => { const P = mk(line); if(P) TRACKS.push({layer, id, P, walk:false, speed:5.5, n:Math.max(1, Math.round(P.L / 2500))}); };
+    const add = (layer, id, line, name) => { const P = mk(line); if(P) TRACKS.push({layer, id, P, name, walk:false, speed:5.5, n:Math.max(1, Math.round(P.L / 2500))}); };
     (D.routes?.features || []).forEach((f, i) => { const g = f.geometry; if(!g) return;
-      (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('routes', 'r' + i + '.' + k, l)); });
+      (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('routes', 'r' + i + '.' + k, l, f.properties.name)); });
     (D.trail?.features || []).forEach((f, i) => { const g = f.geometry; if(!g) return;
       (g.type === 'MultiLineString' ? g.coordinates : [g.coordinates]).forEach((l, k) => add('trail', 't' + i + '.' + k, l)); });
     return TRACKS;
@@ -245,14 +265,19 @@
     const z = map.getZoom(), b = map.getBounds(), c = map.getCenter(), cap = innerWidth < 820 ? 6 : 14;
     // каждый персонаж — только в своей теме: досуг — в «Горах сейчас», гуляющие — у усадеб
     const on = window.GP_SHOWN || [], want = [];
-    if(on.includes('leisure')) (D.leisure?.features || []).forEach((f, i) => { const k = KINDS[f.properties.kind]; if(!k || z < k.minz || (k.ok && !k.ok(f.properties))) return;
+    const flat = !is3d();   // на плоской карте — только велосипедисты
+    if(!flat && on.includes('leisure')) (D.leisure?.features || []).forEach((f, i) => { const k = KINDS[f.properties.kind]; if(!k || z < k.minz || (k.ok && !k.ok(f.properties))) return;
       const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'l' + i, kind:f.properties.kind, x, y}); });
-    if(z >= 15.5 && on.includes('estate')) (D.estate?.features || []).forEach((f, i) => { const t = f.properties.type; if(t === 'Дача' || t === 'Дом') return; const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'e' + i, kind:'усадьба', x, y}); });
-    // велосипедисты (и пешеходы на пеших маршрутах) едут по нашим маршрутам и Большой горной тропе
-    let nt = 0;
-    if(z >= 14.5 && (on.includes('routes') || on.includes('trail'))) trackPaths().forEach(T0 => { if(!on.includes(T0.layer)) return;
-      for(let j = 0; j < T0.n; j++){ const off = j / T0.n * 2 * T0.P.L, q = along(T0.P, performance.now() / 1000 * T0.speed + off);
-        if(nt < (innerWidth < 820 ? 5 : 10) && b.contains([q.lng, q.lat])){ nt++; want.push({id:T0.id + '_' + j, kind:T0.walk ? 'пешком' : 'велосипед', x:q.lng, y:q.lat, track:{P:T0.P, off, speed:T0.speed}}); } } });
+    if(!flat && z >= 15.5 && on.includes('estate')) (D.estate?.features || []).forEach((f, i) => { const t = f.properties.type; if(t === 'Дача' || t === 'Дом') return; const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'e' + i, kind:'усадьба', x, y}); });
+    // велосипедисты на наших маршрутах. window.GP_RIDE (из app.js): '*' — все маршруты (вкладка «Маршруты»), [имя] — один (глава).
+    // Издалека — по одному на маршрут, вблизи — один на каждые ~2,5 км. Без GP_RIDE — только в 3D вблизи, по маршрутам и тропе на карте.
+    let nt = 0; const RIDE = window.GP_RIDE, lim = innerWidth < 820 ? 6 : 12, push = (T0, j, n) => { const off = j / n * 2 * T0.P.L, q = along(T0.P, performance.now() / 1000 * T0.speed + off);
+      if(nt < lim && b.contains([q.lng, q.lat])){ nt++; want.push({id:T0.id + '_' + j + '/' + n, kind:'велосипед', x:q.lng, y:q.lat, track:{P:T0.P, off, speed:T0.speed}}); } };
+    if(RIDE){
+      const mine = trackPaths().filter(T0 => T0.layer === 'routes' && (RIDE === '*' || RIDE.includes(T0.name)));
+      if(z < 13.5){ const best = {}; mine.forEach(T0 => { if(!best[T0.name] || best[T0.name].P.L < T0.P.L) best[T0.name] = T0; }); Object.values(best).forEach(T0 => push(T0, 0, 1)); }
+      else mine.forEach(T0 => { for(let j = 0; j < T0.n; j++) push(T0, j, T0.n); });
+    } else if(is3d() && z >= 14.5 && (on.includes('routes') || on.includes('trail'))) trackPaths().forEach(T0 => { if(on.includes(T0.layer)) for(let j = 0; j < T0.n; j++) push(T0, j, T0.n); });
     want.sort((a, q) => Math.hypot(a.x - c.lng, a.y - c.lat) - Math.hypot(q.x - c.lng, q.y - c.lat));
     const keep = new Set(want.slice(0, cap).map(w => w.id));
     for(let k = actors.length - 1; k >= 0; k--) if(!actors[k].route && !keep.has(actors[k].id)){ drop(actors[k].w); actors.splice(k, 1); }
@@ -286,11 +311,11 @@
     if(a.route){
       const R = route, dur = Math.max(22, Math.min(45, R.L * 1.4)) * 1000, s = ((t - a.t0) % dur) / dur * R.L; let k = 1; while(k < R.cum.length - 1 && R.cum[k] < s) k++;
       const p = R.pts[k - 1], q = R.pts[k], u = (s - R.cum[k - 1]) / ((R.cum[k] - R.cum[k - 1]) || 1);
-      if(R.walk) walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.P.L.rotation.z = 1.0 + Math.sin(t / 120) * 0.4; m.P.R.rotation.z = 1.0 - Math.sin(t / 120) * 0.4; }
+      if(R.walk) walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.pedal(-t / 160); }
       return {lng:p[0] + (q[0] - p[0]) * u, lat:p[1] + (q[1] - p[1]) * u, h:0, yaw:Math.atan2((q[1] - p[1]) * 2, q[0] - p[0])};
     }
     if(a.track){ const q = along(a.track.P, t / 1000 * a.track.speed + a.track.off); a.x = q.lng; a.y = q.lat;   // позиция нужна и для проверки «в кадре»
-      if(a.kind === 'пешком') walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.P.L.rotation.z = 1.0 + Math.sin(t / 120) * 0.4; m.P.R.rotation.z = 1.0 - Math.sin(t / 120) * 0.4; }
+      if(a.kind === 'пешком') walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.pedal(-t / 160); }
       return {...q, h:0}; }
     if(a.kind === 'Парапланеризм'){ const w = t / 14000 + ph, r = 70;   // кружит над стартом в ~50 м над землёй, с креном в вираже
       return {dx:Math.cos(w) * r, dy:Math.sin(w) * r, h:50 + Math.sin(t / 2100 + ph) * 4, yaw:w + Math.PI / 2, tilt:-0.22 + Math.sin(t / 1300 + ph) * 0.06}; }
@@ -324,15 +349,23 @@
       LANDMARKS.forEach(([name, make, x, y, rot]) => { const w = upright(make()); w.userData.yaw.rotation.z = rot * Math.PI / 180; root.add(w); marks.push({w, x, y}); });
     },
     render(gl, args){
-      const on = is3d(); if(!on){ if(enabled){ root.visible = false; enabled = false; } return; }
-      enabled = true; root.visible = true;
-      const t = performance.now();
+      // доминанты и фигурки у клубов — только в 3D; велосипедисты на маршрутах — и на плоской карте
+      const on = is3d(), ride = !!window.GP_RIDE;
+      if(!on && !ride && !actors.length){ if(enabled){ root.visible = false; enabled = false; } return; }
+      enabled = true; root.visible = true; marks.forEach(k => k.w.visible = on);
+      const t = performance.now(), mpp = metersPerPx(), pitch = map.getPitch();
+      // ездок издалека — ~48 px на экране, вблизи — ×4 к росту (в масштабе домов)
+      const RS = Math.min(600, Math.max(figOf('велосипед'), 48 * mpp / 1.9));
+      // когда камера смотрит почти сверху, велосипедист «ложится» боком к зрителю — иначе сверху виден только штрих
+      const lie = Math.PI / 2 * Math.min(1, Math.max(0, 1 - pitch / 50));
       if(t - lastPick > 700){ lastPick = t; setTimeout(pickActors, 0); }   // подбор фигурок — вне кадра отрисовки
       // высота земли под доминантами меняется только с усилением рельефа — уточняем раз в полсекунды
-      marks.forEach(k => { if(k.z == null || t - (k.zt || 0) > 500){ k.z = elev(k.x, k.y); k.zt = t; } place(k.w, k.x, k.y, k.z); });
+      if(on) marks.forEach(k => { if(k.z == null || t - (k.zt || 0) > 500){ k.z = elev(k.x, k.y); k.zt = t; } place(k.w, k.x, k.y, k.z); });
       actors.forEach(a => { const s = behave(a, t); let lng = s.lng, lat = s.lat; if(lng == null) [lng, lat] = ofs(a.x, a.y, s.dx, s.dy);
         place(a.w, lng, lat, elev(lng, lat) + (s.h || 0));
-        const y = a.w.userData.yaw; y.rotation.z = s.yaw || 0; y.rotation.x = s.tilt || 0; });
+        const y = a.w.userData.yaw;
+        if(a.track){ a.w.scale.setScalar(RS); y.rotation.order = 'ZYX'; y.rotation.set(-lie, 0, s.yaw || 0); }
+        else { y.rotation.z = s.yaw || 0; y.rotation.x = s.tilt || 0; } });
       const mm = new T.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
       const l = new T.Matrix4().makeTranslation(origin.x, origin.y, origin.z).scale(new T.Vector3(scaleM, -scaleM, scaleM));
       camera.projectionMatrix = mm.multiply(l);
