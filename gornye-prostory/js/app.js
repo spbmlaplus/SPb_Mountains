@@ -243,11 +243,11 @@ map.once('style.load', () => {
   // дома в 3D: коробки по высоте из OpenStreetMap, проявляются с 13-го масштаба
   // дома OSM выше 250 м (Лахта-центр) не рисуем — вместо них подробная модель из scene3d.js
   map.addLayer(resolve({id:'bld', type:'fill-extrusion', source:'omt', 'source-layer':'building', minzoom:13,
-    // под объёмными моделями (Исаакий, Петропавловский и Смольный соборы) дома OSM не рисуем, чтобы не было двойных зданий
+    // под объёмными моделями (scene3d.js) дома OSM не рисуем, чтобы не было двойных зданий; радиус — по размеру модели
+    // (Адмиралтейство — исключение: здание рисует OSM, модель — только башня со шпилем)
     filter:['all',['<',['coalesce',['get','render_height'],0],250],
-      ['>',['distance',{type:'Point',coordinates:[30.3060,59.9341]}],45],
-      ['>',['distance',{type:'Point',coordinates:[30.3166,59.9502]}],25],
-      ['>',['distance',{type:'Point',coordinates:[30.3954,59.9488]}],25]],
+      ...[[30.17814,59.98703,45],[30.32083,59.97667,30],[30.30611,59.93395,45],[30.3166,59.9502,25],[30.3954,59.9488,25],[30.2205,59.9730,140]]
+        .map(([x, y, r]) => ['>',['distance',{type:'Point',coordinates:[x, y]}],r])],
     paint:{'fill-extrusion-color':['interpolate',['linear'],['coalesce',['get','render_height'],9],3,'#d8d0c2',20,'#e6dccb',45,'#f0c9cf',90,'#e98fac'],
       'fill-extrusion-height':['interpolate',['linear'],['zoom'],13,0,14.2,['coalesce',['get','render_height'],9]],
       'fill-extrusion-base':['interpolate',['linear'],['zoom'],13,0,14.2,['coalesce',['get','render_min_height'],0]],
@@ -609,7 +609,7 @@ let scene3dState = 0;   // 0 — не грузили, 1 — грузится, 2 
 function load3D(){
   if(scene3dState) return; scene3dState = 1;
   const add = src => new Promise((ok, fail) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => fail(src); document.body.appendChild(s); });
-  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123c')).then(() => whenReady(() => {
+  add('vendor/three.min.js').then(() => add('js/scene3d.js?v=20261123d')).then(() => whenReady(() => {
     scene3dState = 2;
     if(window.GP3D && !map.getLayer('scene3d')) try{ map.addLayer(GP3D.layer, map.getLayer('infra-place') ? 'infra-place' : undefined); if(GP3D._pending) GP3D.setRoute(...GP3D._pending); map.triggerRepaint(); }catch(e){ console.warn('[3D]', e); }
   })).catch(e => console.warn('[3D] не загрузилось:', e));

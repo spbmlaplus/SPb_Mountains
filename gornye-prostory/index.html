@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500&display=swap" rel="stylesheet">
 <link href="vendor/maplibre-gl.css" rel="stylesheet">
-<link href="css/style.css?v=20261120g" rel="stylesheet">
+<link href="css/style.css?v=20261123" rel="stylesheet">
 <script>/* если что-то сломается — показать причину внизу страницы, чтобы её можно было прислать */
 window.GP_ERR = [];
 addEventListener('error', e => { const m = (e.message || (e.target && (e.target.src || e.target.href)) || 'ошибка') + (e.filename ? ' — ' + e.filename.split('/').pop() + ':' + e.lineno : '');
@@ -85,12 +85,13 @@ addEventListener('error', e => { const m = (e.message || (e.target && (e.target.
   </div>
   <div class="tip" id="tip" role="tooltip" hidden></div>
   <a class="ret-chip" id="retChip" hidden></a>
-  <details class="map-key" id="mapKey" open hidden><summary>На карте</summary><div id="mapKeyBody"></div></details>
 
   <aside class="panel" id="panel" aria-live="polite">
     <button class="panel-grab" id="pGrab" type="button" aria-controls="pTop pBody pFoot" aria-expanded="true" aria-label="Свернуть описание"><span>Показать описание</span></button>
     <div class="panel-top" id="pTop"></div>
     <div class="panel-body" id="pBody"></div>
+    <!-- легенда шага — внизу текстовой панели, а не поверх карты -->
+    <details class="map-key" id="mapKey" open hidden><summary>На карте</summary><div id="mapKeyBody"></div></details>
     <div class="panel-foot" id="pFoot" hidden></div>
   </aside>
 
@@ -129,7 +130,7 @@ addEventListener('error', e => { const m = (e.message || (e.target && (e.target.
 <script src="js/config.js?v=20261120f"></script>
 <script src="js/viewshed.js?v=20261118d"></script>
 <!-- vendor/three.min.js и js/scene3d.js подгружает app.js при первом включении 3D -->
-<script src="js/app.js?v=20261123c"></script>
+<script src="js/app.js?v=20261123d"></script>
 <script src="js/clouds.js?v=20261120h"></script>
 <script src="js/intro.js?v=20261118d"></script>
 </body>

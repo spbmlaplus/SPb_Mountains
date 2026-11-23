@@ -142,9 +142,20 @@
     g.add(at(cyl(5, 5, 6, M.gold, 12), 0, 43, 0), at(new T.Mesh(new T.ConeGeometry(2.6, 26, 8), M.gold), 0, 59, 0), at(sph(0.8, M.gold), 0, 72.5, 0));
     return g;
   }
-  // [название, модель, долгота, широта, поворот°]
-  const LANDMARKS = [['Лахта-центр', lakhta, 30.1772, 59.9871, 0], ['Телебашня', tvTower, 30.3317, 59.9776, 0], ['Исаакиевский собор', isaac, 30.3060, 59.9341, 0],
-    ['Петропавловский собор', peterPaul, 30.3166, 59.9502, -5], ['Смольный собор', smolny, 30.3954, 59.9488, 0], ['Адмиралтейство', admiralty, 30.3084, 59.9375, -12]];
+  // «Газпром Арена»: овальная чаша ~290×250 м высотой ~50 м, серебристая крыша-линза и восемь наклонных мачт до ~79 м
+  function arena(){
+    const g = new T.Group(), silver = mat('#C9D1D8', {m:0.55, r:0.35}), glass = mat('#7E98AE', {m:0.4, r:0.3});
+    const body = cyl(1, 0.92, 1, glass, 48); body.scale.set(145, 46, 125); body.position.y = 23; g.add(body);
+    const rim = cyl(1, 1, 1, silver, 48); rim.scale.set(147, 4, 127); rim.position.y = 47; g.add(rim);
+    const roof = new T.Mesh(new T.SphereGeometry(1, 48, 12, 0, Math.PI * 2, 0, Math.PI / 2), silver); roof.scale.set(140, 12, 120); roof.position.y = 49; g.add(roof);
+    for(let k = 0; k < 8; k++){ const a = (k + 0.5) / 8 * Math.PI * 2, x = Math.cos(a) * 150, z = Math.sin(a) * 130;
+      const mast = cyl(1.2, 2.2, 80, M.white, 8); mast.position.set(x, 39, z); mast.rotation.set(-Math.sin(a) * 0.12, 0, Math.cos(a) * 0.12); g.add(mast); }
+    return g;
+  }
+  // [название, модель, долгота, широта, поворот°] — координаты по Википедии (центр здания)
+  const LANDMARKS = [['Лахта-центр', lakhta, 30.17814, 59.98703, 0], ['Телебашня', tvTower, 30.32083, 59.97667, 0], ['Исаакиевский собор', isaac, 30.30611, 59.93395, 0],
+    ['Петропавловский собор', peterPaul, 30.3166, 59.9502, -5], ['Смольный собор', smolny, 30.3954, 59.9488, 0], ['Адмиралтейство', admiralty, 30.30861, 59.93750, -12],
+    ['Газпром Арена', arena, 30.22050, 59.97300, 0]];
 
   /* ---------- слой ---------- */
   let map, renderer, scene, camera, root, origin, scaleM, enabled = false;
@@ -158,26 +169,64 @@
   const metersPerPx = () => 40075016.7 * Math.cos(map.getCenter().lat * Math.PI / 180) / (512 * Math.pow(2, map.getZoom()));
   const ofs = (lng, lat, dx, dy) => [lng + dx / (111320 * Math.cos(lat * Math.PI / 180)), lat + dy / 110540];
 
+  // Фигурки — в масштабе домов: ×2 к настоящему росту (человек ≈ 3,5 м против домов в 15–25 м), без увеличения при отдалении.
+  // Появляются, только когда карту приблизили к месту. Каждая — только у «своего» места:
+  // кони — у конных клубов, мотоциклы — у мототрасс, лыжники — на склонах, параплан — у парадромов и парапланерных клубов.
+  const FIG = 2;
   const KINDS = {
-    'Парапланеризм':{make:paraglider, minz:11.5},
-    'Конный клуб':{make:horseRider, minz:12.5},
-    'Горнолыжный курорт':{make:skier, minz:12.5},
-    'Мотокросс':{make:moto, minz:12.5}
+    'Парапланеризм':{make:paraglider, minz:14, ok:p => /парадром|параплан|парафойл|paraglid|крыло ветра|aerotandem/i.test(p.name || '')},   // без парашютных клубов, аэроклубов и авиамоделистов
+    'Конный клуб':{make:horseRider, minz:15, road:['path','track','service','minor'], speed:3.5},
+    'Горнолыжный курорт':{make:skier, minz:15},
+    'Мотокросс':{make:moto, minz:15, road:['raceway','track','path','service','minor'], speed:8, ok:p => !/строящ/i.test(p.name || '')}
   };
+  const STROLL = {road:['path','footway','pedestrian','service','minor'], speed:1.2};
   // убрать фигурку и освободить её геометрию в видеопамяти (материалы общие — их не трогаем)
   function drop(w){ root.remove(w); w.traverse(o => { if(o.geometry) o.geometry.dispose(); }); }
+
+  /* ---------- дороги: фигурка ездит по ближайшей подходящей дороге OpenStreetMap ---------- */
+  const KX = 111320 * Math.cos(59.95 * Math.PI / 180), KY = 110540;   // метров в градусе долготы и широты
+  const paths = new Map();   // id места → отрезок дороги (кэш, чтобы не искать заново)
+  function findPath(x, y, classes, maxD = 220){
+    let fs; try{ fs = map.querySourceFeatures('omt', {sourceLayer:'transportation'}); }catch(e){ return null; }
+    if(!fs || !fs.length) return null;
+    let best = null, bd = maxD;
+    fs.forEach(f => { if(!classes.includes(f.properties.class)) return; const g = f.geometry; if(!g) return;
+      (g.type === 'MultiLineString' ? g.coordinates : g.type === 'LineString' ? [g.coordinates] : []).forEach(line => {
+        for(let k = 0; k < line.length; k++){ const d = Math.hypot((line[k][0] - x) * KX, (line[k][1] - y) * KY); if(d < bd){ bd = d; best = {line, k}; } } }); });
+    if(!best) return null;
+    // вокруг ближайшей точки берём ~250 м дороги в обе стороны — по ним фигурка ездит туда и обратно
+    const {line, k} = best, pts = [line[k]];
+    for(let j = k + 1, s = 0; j < line.length && s < 250; j++){ s += Math.hypot((line[j][0] - line[j - 1][0]) * KX, (line[j][1] - line[j - 1][1]) * KY); pts.push(line[j]); }
+    for(let j = k - 1, s = 0; j >= 0 && s < 250; j--){ s += Math.hypot((line[j][0] - line[j + 1][0]) * KX, (line[j][1] - line[j + 1][1]) * KY); pts.unshift(line[j]); }
+    if(pts.length < 2) return null;
+    const cum = [0]; for(let j = 1; j < pts.length; j++) cum.push(cum[j - 1] + Math.hypot((pts[j][0] - pts[j - 1][0]) * KX, (pts[j][1] - pts[j - 1][1]) * KY));
+    return cum[cum.length - 1] > 20 ? {pts, cum, L:cum[cum.length - 1]} : null;
+  }
+  // положение на отрезке по пройденному пути s (туда-обратно)
+  function along(P, s){
+    const per = s % (2 * P.L), back = per > P.L, d = back ? 2 * P.L - per : per; let k = 1; while(k < P.cum.length - 1 && P.cum[k] < d) k++;
+    const p = P.pts[k - 1], q = P.pts[k], u = (d - P.cum[k - 1]) / ((P.cum[k] - P.cum[k - 1]) || 1);
+    const dx = (q[0] - p[0]) * KX, dy = (q[1] - p[1]) * KY;
+    return {lng:p[0] + (q[0] - p[0]) * u, lat:p[1] + (q[1] - p[1]) * u, yaw:Math.atan2(back ? -dy : dy, back ? -dx : dx)};
+  }
+
   function pickActors(){
-    const z = map.getZoom(), b = map.getBounds(), c = map.getCenter(), cap = innerWidth < 820 ? 8 : 18;
+    const z = map.getZoom(), b = map.getBounds(), c = map.getCenter(), cap = innerWidth < 820 ? 6 : 14;
     // каждый персонаж — только в своей теме: досуг — в «Горах сейчас», гуляющие — у усадеб
     const on = window.GP_SHOWN || [], want = [];
-    if(on.includes('leisure')) (D.leisure?.features || []).forEach((f, i) => { const k = KINDS[f.properties.kind]; if(!k || z < k.minz) return; const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'l' + i, kind:f.properties.kind, x, y}); });
-    if(z >= 13.2 && on.includes('estate')) (D.estate?.features || []).forEach((f, i) => { const t = f.properties.type; if(t === 'Дача' || t === 'Дом') return; const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'e' + i, kind:'усадьба', x, y}); });
+    if(on.includes('leisure')) (D.leisure?.features || []).forEach((f, i) => { const k = KINDS[f.properties.kind]; if(!k || z < k.minz || (k.ok && !k.ok(f.properties))) return;
+      const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'l' + i, kind:f.properties.kind, x, y}); });
+    if(z >= 15.5 && on.includes('estate')) (D.estate?.features || []).forEach((f, i) => { const t = f.properties.type; if(t === 'Дача' || t === 'Дом') return; const [x, y] = f.geometry.coordinates; if(b.contains([x, y])) want.push({id:'e' + i, kind:'усадьба', x, y}); });
     want.sort((a, q) => Math.hypot(a.x - c.lng, a.y - c.lat) - Math.hypot(q.x - c.lng, q.y - c.lat));
     const keep = new Set(want.slice(0, cap).map(w => w.id));
     for(let k = actors.length - 1; k >= 0; k--) if(!actors[k].route && !keep.has(actors[k].id)){ drop(actors[k].w); actors.splice(k, 1); }
     want.slice(0, cap).forEach(w => { if(actors.some(a => a.id === w.id)) return;
       const m = w.kind === 'усадьба' ? stroller() : KINDS[w.kind].make(), wrap = upright(m.g); wrap.userData.yaw.add(shadowDisc(w.kind === 'Парапланеризм' ? 0 : w.kind === 'Конный клуб' ? 1.3 : 0.5));
-      root.add(wrap); actors.push({id:w.id, kind:w.kind, x:w.x, y:w.y, m, w:wrap, ph:Math.random() * 100}); });
+      wrap.scale.setScalar(FIG); root.add(wrap); actors.push({id:w.id, kind:w.kind, x:w.x, y:w.y, m, w:wrap, ph:Math.random() * 100, tries:0}); });
+    // дорогу ищем, когда её плитки уже загрузились (не нашли — попробуем на следующем круге, всего до 6 раз)
+    actors.forEach(a => { if(a.route || a.path !== undefined) return; const spec = a.kind === 'усадьба' ? STROLL : KINDS[a.kind]; if(!spec || !spec.road){ a.path = null; return; }
+      if(paths.has(a.id)){ a.path = paths.get(a.id); return; }
+      const P = findPath(a.x, a.y, spec.road, a.kind === 'усадьба' ? 150 : 220); if(P){ paths.set(a.id, P); a.path = P; } else if(++a.tries >= 6) a.path = null; });
   }
   function setRoute(f, walk){
     const old = actors.findIndex(a => a.route); if(old >= 0){ drop(actors[old].w); actors.splice(old, 1); }
@@ -186,13 +235,13 @@
     lines.forEach(l => l.forEach(q => pts.push(q))); if(pts.length < 2) return;
     const cum = [0]; for(let k = 1; k < pts.length; k++) cum.push(cum[k - 1] + Math.hypot((pts[k][0] - pts[k - 1][0]) * 55.6, (pts[k][1] - pts[k - 1][1]) * 111.2));
     const m = walk ? (() => { const P = person({body:M.white}); const g = new T.Group(); g.add(P.g); return {g, P}; })() : cyclist();
-    const wrap = upright(m.g); wrap.userData.yaw.add(shadowDisc(walk ? 0.4 : 0.7)); root.add(wrap);
+    const wrap = upright(m.g); wrap.userData.yaw.add(shadowDisc(walk ? 0.4 : 0.7)); wrap.scale.setScalar(FIG); root.add(wrap);
     route = {pts, cum, L:cum[cum.length - 1], walk};
     actors.push({id:'route', route:true, kind:walk ? 'пешком' : 'велосипед', m, w:wrap, ph:0, t0:performance.now()});
   }
 
-  // поведение: смещение от точки (м), высота над землёй (м, в масштабе фигуры), курс и анимация частей
-  function behave(a, t, S){
+  // поведение: где фигурка (по дороге или смещение от точки в метрах), высота над землёй, курс и анимация частей
+  function behave(a, t){
     const m = a.m, ph = a.ph;
     if(a.route){
       const R = route, dur = Math.max(22, Math.min(45, R.L * 1.4)) * 1000, s = ((t - a.t0) % dur) / dur * R.L; let k = 1; while(k < R.cum.length - 1 && R.cum[k] < s) k++;
@@ -200,20 +249,28 @@
       if(R.walk) walkCycle(m.P, t / 140); else { m.w1.rotation.z -= 0.25; m.w2.rotation.z -= 0.25; m.P.L.rotation.z = 1.0 + Math.sin(t / 120) * 0.4; m.P.R.rotation.z = 1.0 - Math.sin(t / 120) * 0.4; }
       return {lng:p[0] + (q[0] - p[0]) * u, lat:p[1] + (q[1] - p[1]) * u, h:0, yaw:Math.atan2((q[1] - p[1]) * 2, q[0] - p[0])};
     }
-    if(a.kind === 'Парапланеризм'){ const w = t / 9000 + ph, r = 26 * S;   // крен в вираже + лёгкое покачивание
-      return {dx:Math.cos(w) * r, dy:Math.sin(w) * r, h:(14 + Math.sin(t / 2100 + ph) * 2) * S, yaw:w + Math.PI / 2, tilt:-0.22 + Math.sin(t / 1300 + ph) * 0.06}; }
-    if(a.kind === 'Конный клуб'){ const w = t / 6500 + ph, r = 9 * S; const g = Math.sin(t / 110 + ph);
-      m.legs[0].rotation.z = g * 0.6; m.legs[3].rotation.z = g * 0.6; m.legs[1].rotation.z = -g * 0.6; m.legs[2].rotation.z = -g * 0.6; m.h.position.y = Math.abs(g) * 0.08; m.P.g.position.y = 0.75 + Math.abs(g) * 0.1;
-      return {dx:Math.cos(w) * r, dy:Math.sin(w) * 0.6 * r, h:0, yaw:Math.atan2(Math.cos(w) * 0.6, -Math.sin(w))}; }
-    if(a.kind === 'Горнолыжный курорт'){ const c = ((t / 7000 + ph) % 1), down = c < 0.7, u = down ? c / 0.7 : 1 - (c - 0.7) / 0.3;
-      return {dx:(u - 0.5) * 14 * S, dy:Math.sin(u * 9) * 1.5 * S, h:0, yaw:down ? Math.cos(u * 9) * 0.3 : Math.PI}; }
-    if(a.kind === 'Мотокросс'){ const w = t / 3800 + ph, r = 8 * S, j = Math.max(0, Math.sin(w * 2)) ; m.w1.rotation.z -= 0.35; m.w2.rotation.z -= 0.35; m.g.rotation.z = j > 0.85 ? 0.25 : 0;
-      return {dx:Math.cos(w) * r * 1.4, dy:Math.sin(w) * r, h:j > 0.85 ? (j - 0.85) * 12 * S * 0.25 : 0, yaw:Math.atan2(Math.cos(w), -Math.sin(w) * 1.4)}; }
-    // гуляющая у усадьбы: идёт по кругу, иногда останавливается полюбоваться видом
-    const cyc = (t / 1000 + ph * 7) % 26, walking = cyc < 20, w = (Math.min(cyc, 20) / 20) * Math.PI * 2 + ph, r = 7 * S;
-    if(walking) walkCycle(m.P, t / 260, 0.35); else walkCycle(m.P, 0, 0);
-    return {dx:Math.cos(w) * r, dy:Math.sin(w) * r, h:0, yaw:walking ? w + Math.PI / 2 : w + Math.PI};
+    if(a.kind === 'Парапланеризм'){ const w = t / 14000 + ph, r = 70;   // кружит над стартом в ~50 м над землёй, с креном в вираже
+      return {dx:Math.cos(w) * r, dy:Math.sin(w) * r, h:50 + Math.sin(t / 2100 + ph) * 4, yaw:w + Math.PI / 2, tilt:-0.22 + Math.sin(t / 1300 + ph) * 0.06}; }
+    if(a.kind === 'Горнолыжный курорт'){ const c = ((t / 9000 + ph) % 1), down = c < 0.7, u = down ? c / 0.7 : 1 - (c - 0.7) / 0.3;   // съезд по склону и подъём
+      return {dx:(u - 0.5) * 60, dy:Math.sin(u * 9) * 5, h:0, yaw:down ? Math.cos(u * 9) * 0.3 : Math.PI}; }
+    const spec = a.kind === 'усадьба' ? STROLL : KINDS[a.kind], P = a.path;
+    // анимация частей
+    if(a.kind === 'Конный клуб'){ const g = Math.sin(t / 110 + ph); m.legs[0].rotation.z = g * 0.6; m.legs[3].rotation.z = g * 0.6; m.legs[1].rotation.z = -g * 0.6; m.legs[2].rotation.z = -g * 0.6; m.h.position.y = Math.abs(g) * 0.08; m.P.g.position.y = 0.75 + Math.abs(g) * 0.1; }
+    else if(a.kind === 'Мотокросс'){ m.w1.rotation.z -= 0.35; m.w2.rotation.z -= 0.35; }
+    if(P){
+      if(a.kind === 'усадьба'){   // гуляющая: идёт по дорожке, иногда останавливается полюбоваться видом
+        const cyc = (t / 1000 + ph * 7) % 26, walking = cyc < 20; if(a.s == null) a.s = ph * 10;
+        if(walking){ a.s += spec.speed * 0.033; walkCycle(m.P, t / 260, 0.35); } else walkCycle(m.P, 0, 0);
+        return {...along(P, a.s), h:0};
+      }
+      const s = (t / 1000 + ph * 3) * spec.speed; return {...along(P, s), h:0};
+    }
+    // дороги рядом нет — небольшой круг у самого места
+    const w = (t / 1000) * spec.speed / 12 + ph, r = 12;
+    if(a.kind === 'усадьба') walkCycle(m.P, t / 260, 0.35);
+    return {dx:Math.cos(w) * r, dy:Math.sin(w) * r, h:0, yaw:w + Math.PI / 2};
   }
+
 
   const layer = {id:'scene3d', type:'custom', renderingMode:'3d',
     onAdd(m, gl){
@@ -226,13 +283,12 @@
     render(gl, args){
       const on = is3d(); if(!on){ if(enabled){ root.visible = false; enabled = false; } return; }
       enabled = true; root.visible = true;
-      const t = performance.now(), mpp = metersPerPx(), S = Math.min(70, Math.max(1, 30 * mpp / 1.8));   // фигурка ≈ 30 px
+      const t = performance.now();
       if(t - lastPick > 600){ lastPick = t; pickActors(); }
       // высота земли под доминантами меняется только с усилением рельефа — уточняем раз в полсекунды
       marks.forEach(k => { if(k.z == null || t - (k.zt || 0) > 500){ k.z = elev(k.x, k.y); k.zt = t; } place(k.w, k.x, k.y, k.z); });
-      // увеличены только кони и парапланеристы — их видно с высоты; остальные фигурки в настоящую величину
-      actors.forEach(a => { const big = a.kind === 'Конный клуб' || a.kind === 'Парапланеризм', k = big ? S : 1, s = behave(a, t, k); let lng = s.lng, lat = s.lat; if(lng == null) [lng, lat] = ofs(a.x, a.y, s.dx, s.dy);
-        place(a.w, lng, lat, elev(lng, lat) + (s.h || 0)); a.w.scale.setScalar(k);
+      actors.forEach(a => { const s = behave(a, t); let lng = s.lng, lat = s.lat; if(lng == null) [lng, lat] = ofs(a.x, a.y, s.dx, s.dy);
+        place(a.w, lng, lat, elev(lng, lat) + (s.h || 0));
         const y = a.w.userData.yaw; y.rotation.z = s.yaw || 0; y.rotation.x = s.tilt || 0; });
       const mm = new T.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
       const l = new T.Matrix4().makeTranslation(origin.x, origin.y, origin.z).scale(new T.Vector3(scaleM, -scaleM, scaleM));
